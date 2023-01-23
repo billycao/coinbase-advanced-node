@@ -6,8 +6,8 @@ const client = initClient();
 
 // 2. Setup WebSocket channel info
 const channel = {
-  name: WebSocketChannelName.TICKER,
-  product_ids: ['BTC-USD', 'ETH-EUR'],
+  channel: WebSocketChannelName.TICKER,
+  product_ids: ['SOL-USDT', 'XLM-USD'],
 };
 
 // 3. Wait for open WebSocket to send messages
@@ -28,14 +28,19 @@ client.ws.on(WebSocketEvent.ON_SUBSCRIPTION_UPDATE, subscriptions => {
 // 5. Listen to WebSocket channel updates
 client.ws.on(WebSocketEvent.ON_MESSAGE_TICKER, async tickerMessage => {
   // 8. Receive message from WebSocket channel
-  console.info(`Received message of type "${tickerMessage.type}".`, tickerMessage);
+  console.info(`Received message ticker of type "${tickerMessage.type}".`, tickerMessage);
   // 9. Unsubscribe from WebSocket channel
   await client.ws.unsubscribe([
     {
-      name: WebSocketChannelName.TICKER,
+      channel: WebSocketChannelName.TICKER,
       product_ids: [tickerMessage.product_id],
     },
   ]);
+});
+
+client.ws.on(WebSocketEvent.ON_ERROR, async tickerMessage => {
+  // 8. Receive message from WebSocket channel
+  console.info(`Received error of type ".`, tickerMessage);
 });
 
 // 6. Connect to WebSocket

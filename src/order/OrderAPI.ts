@@ -1,146 +1,211 @@
 import {AxiosError, AxiosInstance} from 'axios';
-import {ISO_8601_MS_UTC, OrderSide, PaginatedData, Pagination} from '../payload';
-import querystring from 'querystring';
+import {ISO_8601_MS_UTC, OrderSide, PaginatedData} from '../payload';
 
 export enum OrderType {
-  LIMIT = 'limit',
-  MARKET = 'market',
+  LIMIT = 'LIMIT',
+  MARKET = 'MARKET',
+  STOP = 'STOP',
+  STOP_LIMIT = 'STOP_LIMIT',
+  UNKNOWN_ORDER_TYPE = 'UNKNOWN_ORDER_TYPE',
 }
 
 export enum TimeInForce {
-  FILL_OR_KILL = 'FOK',
-  GOOD_TILL_CANCELED = 'GTC',
-  GOOD_TILL_TIME = 'GTT',
-  IMMEDIATE_OR_CANCEL = 'IOC',
+  FILL_OR_KILL = 'FILL_OR_KILL',
+  GOOD_UNTIL_CANCELLED = 'GOOD_UNTIL_CANCELLED',
+  GOOD_UNTIL_DATE_TIME = 'GOOD_UNTIL_DATE_TIME',
+  IMMEDIATE_OR_CANCEL = 'IMMEDIATE_OR_CANCEL',
+  UNKNOWN_TIME_IN_FORCE = 'UNKNOWN_TIME_IN_FORCE',
 }
-
-export enum CancelOrderPeriod {
-  ONE_DAY = 'day',
-  ONE_HOUR = 'hour',
-  ONE_MINUTE = 'min',
-}
-
-/** @see https://docs.cloud.coinbase.com/exchange/docs/matching-engine#self-trade-prevention */
-export enum SelfTradePrevention {
-  CANCEL_BOTH = 'cb',
-  CANCEL_NEWEST = 'cn',
-  CANCEL_OLDEST = 'co',
-  DECREMENT_AND_CANCEL = 'dc',
-}
-
-type BaseOrder = {
-  client_oid?: string;
-  product_id: string;
-  side: OrderSide;
-  stop?: 'loss' | 'entry';
-  stop_price?: string;
-  stp?: SelfTradePrevention;
-};
-
-type BasePlacedOrder = {
-  created_at: ISO_8601_MS_UTC;
-  executed_value: string;
-  fill_fees: string;
-  filled_size: string;
-  id: string;
-  post_only: false;
-  price: string;
-  product_id: string;
-  settled: boolean;
-  side: OrderSide;
-  size: string;
-  status: OrderStatus;
-  time_in_force: TimeInForce;
-  type: OrderType;
-};
-
-export type NewOrder = LimitOrder | AutoCancelLimitOrder | PostOnlyLimitOrder | MarketOrder;
-
-export interface AutoCancelLimitOrder extends LimitOrder {
-  cancel_after: CancelOrderPeriod;
-  time_in_force: TimeInForce.GOOD_TILL_TIME;
-}
-
-export interface PostOnlyLimitOrder extends LimitOrder {
-  post_only: boolean;
-  time_in_force: TimeInForce.GOOD_TILL_CANCELED | TimeInForce.GOOD_TILL_TIME;
-}
-
-export interface LimitOrder extends BaseOrder {
-  price: string;
-  size: string;
-  /** Default is 'GTC'. */
-  time_in_force?: TimeInForce;
-  type: OrderType.LIMIT;
-}
-
-export type MarketOrder = BaseOrder & {type: OrderType.MARKET} & ({size: string} | {funds: string});
 
 export enum OrderStatus {
-  ACTIVE = 'active',
-  DONE = 'done',
-  OPEN = 'open',
-  PENDING = 'pending',
+  CANCELLED = 'CANCELLED',
+  EXPIRED = 'EXPIRED',
+  FAILED = 'FAILED',
+  FILLED = 'FILLED',
+  OPEN = 'OPEN',
+  PENDING = 'PENDING',
+  UNKNOWN_ORDER_STATUS = 'UNKNOWN_ORDER_STATUS',
 }
 
-export interface PendingOrder extends BasePlacedOrder {
-  status: OrderStatus.PENDING;
-  stp: SelfTradePrevention;
+export enum TriggerStatus {
+  INVALID_ORDER_TYPE = 'INVALID_ORDER_TYPE',
+  STOP_PENDING = 'STOP_PENDING',
+  STOP_TRIGGERED = 'STOP_TRIGGERED',
+  UNKNOWN_TRIGGER_STATUS = 'UNKNOWN_TRIGGER_STATUS',
 }
 
-export interface FilledOrder extends BasePlacedOrder {
-  done_at: ISO_8601_MS_UTC;
-  done_reason: 'filled';
-  profile_id: string;
-  status: OrderStatus.DONE;
+export enum StopDirection {
+  STOP_DIRECTION_STOP_DOWN = 'STOP_DIRECTION_STOP_DOWN',
+  STOP_DIRECTION_STOP_UP = 'STOP_DIRECTION_STOP_UP',
+  UNKNOWN_STOP_DIRECTION = 'UNKNOWN_STOP_DIRECTION',
 }
 
-/** @see https://docs.cloud.coinbase.com/exchange/reference/exchangerestapi_getorders */
-export interface OrderListQueryParam extends Pagination {
+export interface LimitOrderGTC {
+  limit_limit_gtc: {
+    base_size: string;
+    limit_price: string;
+    post_only: boolean;
+  };
+}
+
+export interface LimitOrderGTD {
+  limit_limit_gtd: {
+    base_size: string;
+    end_time: ISO_8601_MS_UTC;
+    limit_price: string;
+    post_only: boolean;
+  };
+}
+
+export interface StopOrderGTC {
+  stop_limit_stop_limit_gtc: {
+    base_size: string;
+    limit_price: string;
+    stop_direction: StopDirection;
+    stop_price: string;
+  };
+}
+
+export interface StopOrderGTD {
+  stop_limit_stop_limit_gtc: {
+    base_size: string;
+    end_time: ISO_8601_MS_UTC;
+    limit_price: string;
+    stop_direction: StopDirection;
+    stop_price: string;
+  };
+}
+
+export interface MarketOrder {
+  market_market_ioc: {
+    base_size?: string; // Amount of base currency to spend on order. Required for SELL orders.
+    quote_size?: string; // Amount of quote currency to spend on order. Required for BUY orders.
+  };
+}
+
+export type OrderConfiguration = MarketOrder | LimitOrderGTC | LimitOrderGTD | StopOrderGTC | StopOrderGTD;
+
+export interface NewOrder {
+  client_order_id: string;
+  order_configuration: OrderConfiguration;
+  product_id: string;
+  side: OrderSide;
+}
+
+export enum CancelOrderFailureReasons {
+  COMMANDER_REJECTED_CANCEL_ORDER = 'COMMANDER_REJECTED_CANCEL_ORDER',
+  DUPLICATE_CANCEL_REQUEST = 'DUPLICATE_CANCEL_REQUEST',
+  INVALID_CANCEL_REQUEST = 'INVALID_CANCEL_REQUEST',
+  UNKNOWN_CANCEL_FAILURE_REASON = 'UNKNOWN_CANCEL_FAILURE_REASON',
+  UNKNOWN_CANCEL_ORDER = 'UNKNOWN_CANCEL_ORDER',
+}
+
+export interface CancelOrderResponse {
+  failure_reason?: CancelOrderFailureReasons;
+  order_id: string;
+  success?: boolean;
+}
+
+/** @see https://docs.cloud.coinbase.com/advanced-trade-api/reference/retailbrokerageapi_gethistoricalorders */
+export interface OrderListQueryParam {
+  end_date?: ISO_8601_MS_UTC;
+  limit?: number;
+  order_side?: OrderSide;
+  /** Limit list of orders to these statuses. Passing "all" returns orders of all statuses. Default: [open, pending, active] */
+  order_status?: (OrderStatus | 'all')[];
+  order_type?: OrderType;
   /** Only list orders for a specific product. */
   product_id?: string;
-  /** Limit list of orders to these statuses. Passing "all" returns orders of all statuses. Default: [open, pending, active] */
-  status?: (OrderStatus | 'all')[];
+  product_type?: string;
+  start_date?: ISO_8601_MS_UTC;
+  user_native_currency?: string;
+}
+export interface Order {
+  average_filled_price: string;
+  cancel_message: string;
+  client_order_id: string;
+  completion_percentage: string;
+  created_time: ISO_8601_MS_UTC;
+  fee: string;
+  filled_size: string;
+  filled_value: string;
+  id(id: any): unknown;
+  number_of_fills: string;
+  order_configuration: OrderConfiguration;
+  order_id: string;
+  order_type: OrderType;
+  pending_cancel: boolean;
+  product_id: string;
+  product_type: string;
+  reject_message: string;
+  reject_reason: string;
+  settled: boolean;
+  side: OrderSide;
+  size_in_quote: boolean;
+  size_inclusive_of_fees: boolean;
+  status: OrderStatus;
+  time_in_force: TimeInForce;
+  total_fees: string;
+  total_value_after_fees: string;
+  trigger_status: TriggerStatus;
+  user_id: string;
 }
 
-export type Order = PendingOrder | FilledOrder;
+export interface CreateOrderResponse {
+  error_response?: {
+    error: string;
+    error_details: string;
+    message: string;
+    new_order_failure_reason: string;
+    preview_failure_reason: string;
+  };
+  failure_reason?: string;
+  order_configuration?: OrderConfiguration;
+  order_id: string;
+  size(size: any): unknown;
+  status(status: any): unknown;
+  success: boolean;
+  success_response?: {
+    client_order_id: string;
+    order_id: string;
+    product_id: string;
+    side: OrderSide;
+  };
+}
 
 export class OrderAPI {
   static readonly URL = {
-    ORDERS: `/orders`,
+    ORDERS: `/brokerage/orders`,
   };
 
   constructor(private readonly apiClient: AxiosInstance) {}
 
   /**
-   * With best effort, cancel all open orders from the profile that the API key belongs to.
+   * Cancel these orders
    *
-   * @param productId - Representation for base and counter
+   * @param orderIds - Representation for base and counter
    * @returns A list of ids of the canceled orders
-   * @see https://docs.cloud.coinbase.com/exchange/reference/exchangerestapi_deleteorders
+   * @see https://docs.cloud.coinbase.com/advanced-trade-api/reference/retailbrokerageapi_cancelorders
    */
-  async cancelOpenOrders(productId?: string): Promise<string[]> {
-    const resource = OrderAPI.URL.ORDERS;
-    const response = await this.apiClient.delete<string[]>(resource, {
-      params: productId ? {product_id: productId} : {},
+  async cancelOpenOrders(orderIds?: string | string[]): Promise<CancelOrderResponse[]> {
+    const resource = OrderAPI.URL.ORDERS + '/batch_cancel';
+    const response = await this.apiClient.post(resource, {
+      order_ids: Array.isArray(orderIds) ? orderIds : [orderIds],
     });
-    return response.data;
+    return response.data.results;
   }
 
   /**
    * Cancel a previously placed order. Order must belong to the profile that the API key belongs to.
    *
    * @param orderId - ID of the order to cancel
-   * @param productId - While not required, the request will be more performant if you include the product ID
+   * @param productId - deprecated
    * @returns The ID of the canceled order
    * @see https://docs.cloud.coinbase.com/exchange/reference/exchangerestapi_deleteorder
    */
-  async cancelOrder(orderId: string, productId?: string): Promise<string> {
-    const resource = `${OrderAPI.URL.ORDERS}/${orderId}`;
-    const response = await this.apiClient.delete<string>(resource, {
-      params: productId ? {product_id: productId} : {},
-    });
-    return response.data;
+  async cancelOrder(orderId: string, _productId?: string): Promise<CancelOrderResponse> {
+    const x = await this.cancelOpenOrders(orderId);
+    return x[0];
   }
 
   /**
@@ -150,19 +215,18 @@ export class OrderAPI {
    * @note Depending on your activity, fetching all data from this endpoint can take very long (measured already 25
    *   seconds!)
    * @param query - Available query parameters (Pagination, Product ID and/or Order Status)
-   * @see https://docs.cloud.coinbase.com/exchange/reference/exchangerestapi_getorders
+   * @see https://docs.cloud.coinbase.com/advanced-trade-api/reference/retailbrokerageapi_gethistoricalorders
    */
   async getOrders(query?: OrderListQueryParam): Promise<PaginatedData<Order>> {
-    const resource = OrderAPI.URL.ORDERS;
-    const response = await this.apiClient.get<Order[]>(`${resource}`, {
+    const resource = OrderAPI.URL.ORDERS + '/brokerage/orders/historical/batch';
+    const response = await this.apiClient.get(`${resource}`, {
       params: query,
-      paramsSerializer: querystring.stringify,
     });
     return {
       data: response.data,
       pagination: {
-        after: response.headers['cb-after'],
-        before: response.headers['cb-before'],
+        after: '0',
+        before: response.data.cursor,
       },
     };
   }
@@ -171,10 +235,10 @@ export class OrderAPI {
    * Get a single order by order id from the profile that the API key belongs to.
    *
    * @param orderId - ID of previously placed order
-   * @see https://docs.cloud.coinbase.com/exchange/reference/exchangerestapi_getorder
+   * @see https://docs.cloud.coinbase.com/advanced-trade-api/reference/retailbrokerageapi_gethistoricalorder
    */
   async getOrder(orderId: string): Promise<Order | null> {
-    const resource = `${OrderAPI.URL.ORDERS}/${orderId}`;
+    const resource = `${OrderAPI.URL.ORDERS}/historical/${orderId}`;
     try {
       const response = await this.apiClient.get<Order>(resource);
       return response.data;
@@ -196,11 +260,11 @@ export class OrderAPI {
    * funds. Once an order is placed, your account funds will be put on hold for the duration of the order.
    *
    * @param newOrder - Order type and parameters
-   * @see https://docs.cloud.coinbase.com/exchange/reference/exchangerestapi_postorders
+   * @see https://docs.cloud.coinbase.com/advanced-trade-api/reference/retailbrokerageapi_postorder
    */
-  async placeOrder(newOrder: NewOrder): Promise<Order> {
+  async placeOrder(newOrder: NewOrder): Promise<CreateOrderResponse> {
     const resource = OrderAPI.URL.ORDERS;
-    const response = await this.apiClient.post<Order>(resource, newOrder);
+    const response = await this.apiClient.post<CreateOrderResponse>(resource, newOrder);
     return response.data;
   }
 }

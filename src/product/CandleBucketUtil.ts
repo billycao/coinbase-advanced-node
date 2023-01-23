@@ -1,5 +1,5 @@
 import {Candle, CandleGranularity} from '.';
-import {ISO_8601_MS_UTC} from '..';
+import {CandleGranularityNumbers, getNumericCandleGranularity, ISO_8601_MS_UTC} from '..';
 
 /** The maximum number of data points for a single historic rates API request on Coinbase Pro is 300 candles: https://docs.cloud.coinbase.com/exchange/reference/exchangerestapi_getproductcandles */
 const MAXIMUM_HISTORIC_DATA_POINTS = 300;
@@ -20,8 +20,8 @@ export class CandleBucketUtil {
     return Math.max(...values);
   }
 
-  static addUnitMillis(openTime: number | string, granularityInSeconds: CandleGranularity, amount: number): number {
-    const granularityInMillis = granularityInSeconds * 1000;
+  static addUnitMillis(openTime: number | string, granularity: CandleGranularity, amount: number): number {
+    const granularityInMillis = getNumericCandleGranularity(granularity) * 1000;
     const units = amount * granularityInMillis;
     return new Date(openTime).getTime() + units;
   }
@@ -35,8 +35,8 @@ export class CandleBucketUtil {
     return new Date(nextTimestamp).toISOString();
   }
 
-  static removeUnitMillis(openTime: number | string, granularityInSeconds: CandleGranularity, amount: number): number {
-    const granularityInMillis = granularityInSeconds * 1000;
+  static removeUnitMillis(openTime: number | string, granularity: CandleGranularity, amount: number): number {
+    const granularityInMillis = getNumericCandleGranularity(granularity) * 1000;
     const units = amount * granularityInMillis;
     return new Date(openTime).getTime() - units;
   }
@@ -60,13 +60,13 @@ export class CandleBucketUtil {
     });
   }
 
-  static mapGranularity(candleSizeInMillis: number): CandleGranularity {
+  static mapGranularity(candleSizeInMillis: number): CandleGranularityNumbers {
     return this.mapInterval(CandleBucketUtil.getIntervals(), candleSizeInMillis);
   }
 
-  static expectedBuckets(fromInMillis: number, toInMillis: number, candleSizeInMillis: CandleGranularity): number {
+  static expectedBuckets(fromInMillis: number, toInMillis: number, candleSize: CandleGranularityNumbers): number {
     const timeSpanInMillis = toInMillis - fromInMillis;
-    return timeSpanInMillis / candleSizeInMillis;
+    return timeSpanInMillis / candleSize;
   }
 
   static getBucketsInMillis(fromInMillis: number, toInMillis: number, candleSizeInMillis: number): number[] {

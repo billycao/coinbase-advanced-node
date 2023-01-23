@@ -9,21 +9,12 @@ describe('CurrencyAPI', () => {
       nock(global.REST_URL)
         .get(CurrencyAPI.URL.CURRENCIES)
         .query(true)
-        .reply(
-          200,
-          JSON.stringify([
-            {
-              id: 'BTC',
-              min_size: 0.00000001,
-              name: 'Bitcoin',
-            },
-          ])
-        );
+        .reply(200, JSON.stringify([{id: 'BIF', min_size: '1.00000000', name: 'Burundian Franc'}]));
 
       const currencies = await global.client.rest.currency.listCurrencies();
 
       expect(currencies.length).toBe(1);
-      expect(currencies[0].id).toBe('BTC');
+      expect(currencies[0].id).toBe('BIF');
     });
   });
 });

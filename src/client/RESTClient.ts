@@ -14,16 +14,20 @@ import {UserAPI} from '../user';
 import {FeeAPI} from '../fee';
 import {FillAPI} from '../fill';
 import querystring from 'querystring';
-import {ProfileAPI} from '../profile';
 import axiosRetry, {isNetworkOrIdempotentRequestError} from 'axios-retry';
 import util, {DebugLogger} from 'util';
 import {EventEmitter} from 'events';
 import {getErrorMessage, gotRateLimited, inAirPlaneMode} from '../error/ErrorUtil';
 import {CurrencyAPI} from '../currency';
 import {WithdrawAPI} from '../withdraw';
-import {TransferAPI} from '../transfer';
 import {TimeAPI} from '../time';
 import {ExchangeRateAPI} from '../exchange-rate/ExchangeRateAPI';
+import {ClientConnection} from '../Coinbase';
+import {TransactionAPI} from '../transaction/TransactionAPI';
+import {DepositAPI} from '../deposit';
+import {AddressAPI} from '../addresses';
+import {BuyAPI} from '../buy';
+import {SellAPI} from '../sell';
 
 export interface RESTClient {
   on(
@@ -46,27 +50,33 @@ export class RESTClient extends EventEmitter {
   }
 
   readonly account: AccountAPI;
+  readonly address: AddressAPI;
+  readonly buy: BuyAPI;
   readonly currency: CurrencyAPI;
+  readonly deposit: DepositAPI;
   readonly exchangeRate: ExchangeRateAPI;
   readonly fee: FeeAPI;
   readonly fill: FillAPI;
   readonly order: OrderAPI;
   readonly product: ProductAPI;
-  readonly profile: ProfileAPI;
+  readonly sell: SellAPI;
   readonly time: TimeAPI;
-  readonly transfer: TransferAPI;
+  readonly transaction: TransactionAPI;
   readonly user: UserAPI;
   readonly withdraw: WithdrawAPI;
 
   private readonly httpClient: AxiosInstance;
   private readonly logger: DebugLogger;
 
-  constructor(baseURL: string, private readonly signRequest: (setup: RequestSetup) => Promise<SignedRequest>) {
+  constructor(
+    connectionData: ClientConnection,
+    private readonly signRequest: (setup: RequestSetup) => Promise<SignedRequest>
+  ) {
     super();
-    this.logger = util.debuglog('coinbase-pro-node');
+    this.logger = util.debuglog('coinbase-advanced-node');
 
     this.httpClient = axios.create({
-      baseURL: baseURL,
+      baseURL: connectionData.REST_ADV_TRADE,
       timeout: 50_000,
     });
 
@@ -78,7 +88,7 @@ export class RESTClient extends EventEmitter {
       retryDelay: (retryCount: number, error: AxiosError) => {
         const errorMessage = getErrorMessage(error);
         this.logger(
-          `#${retryCount} There was an error querying "${error.config.baseURL}${error.config.url}": ${errorMessage}`
+          `#${retryCount} There was an error querying "${error?.config?.baseURL}${error?.config?.url}": ${errorMessage}`
         );
         /**
          * Rate limits:
@@ -92,46 +102,70 @@ export class RESTClient extends EventEmitter {
     });
 
     this.httpClient.interceptors.request.use(async config => {
-      const baseURL = String(config.baseURL);
-      const url = String(config.url);
-      const requestPath = url.replace(baseURL, '');
+      const baseURL = String(
+        config.url?.includes('brokerage') ? connectionData.REST_ADV_TRADE : connectionData.REST_SIWC
+      );
+      config.baseURL = baseURL;
+      // console.log('base ', base)
+      const url = String(baseURL + config.url);
+      let requestPath = url.replace(url.split(config.url?.includes('brokerage') ? '/api/v3/' : '/v2')[0], '');
+
+      if (config.url?.includes('brokerage')) {
+        requestPath = requestPath.replace(requestPath.split('?')[1], '');
+      }
 
       const signedRequest = await this.signRequest({
         httpMethod: String(config.method).toUpperCase(),
-        payload: RESTClient.stringifyPayload(config),
+        payload: RESTClient.stringifyPayload(config, config.url?.includes('brokerage')),
         requestPath,
       });
 
-      config.headers = {
-        ...config.headers,
-        'CB-ACCESS-KEY': signedRequest.key,
-        'CB-ACCESS-PASSPHRASE': signedRequest.passphrase,
-        'CB-ACCESS-SIGN': signedRequest.signature,
-        'CB-ACCESS-TIMESTAMP': `${signedRequest.timestamp}`,
-      };
+      // console.log('config.headers ', config.headers);
+
+      if (!signedRequest.key) {
+        config.headers = {
+          ...config.headers,
+          Authorization: `Bearer: ${signedRequest.signature}`,
+          'CB-ACCESS-TIMESTAMP': `${signedRequest.timestamp}`,
+        };
+      } else {
+        config.headers = {
+          ...config.headers,
+          'CB-ACCESS-KEY': signedRequest.key,
+          'CB-ACCESS-SIGN': signedRequest.signature,
+          'CB-ACCESS-TIMESTAMP': `${signedRequest.timestamp}`,
+        };
+      }
+
+      if (!config.url?.includes('brokerage')) {
+        config.headers['CB-VERSION'] = new Date().toISOString().substring(0, 10);
+      }
 
       return config;
     });
 
+    this.address = new AddressAPI(this.httpClient);
     this.account = new AccountAPI(this.httpClient);
+    this.buy = new BuyAPI(this.httpClient);
+    this.deposit = new DepositAPI(this.httpClient);
     this.currency = new CurrencyAPI(this.httpClient);
     this.exchangeRate = new ExchangeRateAPI();
     this.fee = new FeeAPI(this.httpClient);
     this.fill = new FillAPI(this.httpClient);
     this.order = new OrderAPI(this.httpClient);
     this.product = new ProductAPI(this.httpClient, this);
-    this.profile = new ProfileAPI(this.httpClient);
-    this.time = new TimeAPI(baseURL);
-    this.transfer = new TransferAPI(this.httpClient);
+    this.sell = new SellAPI(this.httpClient);
+    this.time = new TimeAPI(connectionData.REST_SIWC);
+    this.transaction = new TransactionAPI(this.httpClient);
     this.user = new UserAPI(this.httpClient);
     this.withdraw = new WithdrawAPI(this.httpClient);
   }
 
-  static stringifyPayload(config: AxiosRequestConfig): string {
+  static stringifyPayload(config: AxiosRequestConfig, excludeParams?: boolean): string {
     if (config.data) {
       return JSON.stringify(config.data);
     }
     const params = querystring.stringify(config.params);
-    return params ? `?${params}` : '';
+    return params && !excludeParams ? `?${params}` : '';
   }
 }

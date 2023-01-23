@@ -1,79 +1,76 @@
 import {AxiosInstance} from 'axios';
 import {ISO_8601_MS_UTC, PaginatedData, Pagination} from '../payload/common';
+import {formatPaginationIntoParams} from '../util/shared-request';
+
+export interface AvailableBalance {
+  currency: string;
+  value: string;
+}
+
+export interface AccountHold extends AvailableBalance {}
+
+export enum AdvanceAccountTypes {
+  ACCOUNT_TYPE_CRYPTO = 'ACCOUNT_TYPE_CRYPTO',
+  ACCOUNT_TYPE_FIAT = 'ACCOUNT_TYPE_FIAT',
+  ACCOUNT_TYPE_UNSPECIFIED = 'ACCOUNT_TYPE_UNSPECIFIED',
+  ACCOUNT_TYPE_VAULT = 'ACCOUNT_TYPE_VAULT',
+}
 
 export interface Account {
-  available: string;
-  balance: string;
+  active: boolean;
+  available_balance: AvailableBalance;
+  created_at: ISO_8601_MS_UTC;
   currency: string;
-  hold: string;
-  id: string;
-  profile_id: string;
-}
-
-export interface AccountHistory {
-  amount: string;
-  balance: string;
-  created_at: ISO_8601_MS_UTC;
-  details: AccountHistoryDetails;
-  id: string;
-  type: string;
-}
-
-export interface AccountHistoryDetails {
-  order_id: string;
-  product_id: string;
-  trade_id: string;
-}
-
-export interface Hold {
-  account_id: string;
-  amount: string;
-  created_at: ISO_8601_MS_UTC;
-  id: string;
-  ref: string;
-  type: string;
+  default: boolean;
+  deleted_at: ISO_8601_MS_UTC;
+  hold: AccountHold;
+  name: string;
+  ready: boolean;
+  type: AdvanceAccountTypes;
   updated_at: ISO_8601_MS_UTC;
+  uuid: string;
 }
 
-export enum AccountType {
+export enum CoinbaseAccountType {
   FIAT = 'fiat',
+  VAULT = 'vault',
   WALLET = 'wallet',
 }
 
+export interface CoinbaseCurrencyDetails {
+  address_regex: string;
+  asset_id: string;
+  code: string;
+  color: string;
+  destination_tag_name: string;
+  destination_tag_regex: string;
+  exponent: number;
+  name: string;
+  slug: string;
+  sort_index: number;
+  type: CoinbaseAccountType;
+}
+
+export interface CoinbaseRewardDetails {
+  apy: string;
+  formatted_apy: string;
+  label: string;
+}
+
 export interface CoinbaseAccount {
-  active: boolean;
-  available_on_consumer?: true;
-  balance: string;
-  currency: string;
-  destination_tag_name?: string;
-  destination_tag_regex?: string;
-  hold_balance?: string;
-  hold_currency?: string;
+  allow_deposits: boolean;
+  allow_withdrawals: boolean;
+  balance: AvailableBalance;
+  created_at: ISO_8601_MS_UTC;
+  currency: CoinbaseCurrencyDetails;
   id: string;
   name: string;
   primary: boolean;
-  sepa_deposit_information?: SEPADepositInformation;
-  type: AccountType;
-  wire_deposit_information?: WireDepositInformation;
-}
-
-export interface GeneratedAddress {
-  address: string;
-  address_info: AddressInfo;
-  callback_url?: string;
-  created_at: Date;
-  deposit_uri?: string;
-  destination_tag?: string;
-  exchange_deposit_address: boolean;
-  id: string;
-  legacy_address?: string;
-  name: string;
-  network: string;
   resource: string;
   resource_path: string;
-  updated_at: Date;
-  uri_scheme: string;
-  warnings: Warning[];
+  rewards: CoinbaseRewardDetails;
+  type: CoinbaseAccountType;
+  updated_at: ISO_8601_MS_UTC;
 }
 
 export interface AddressInfo {
@@ -81,110 +78,58 @@ export interface AddressInfo {
   destination_tag?: string;
 }
 
-export interface Warning {
-  details: string;
-  image_url: string;
-  title: string;
-}
-
-export interface WireDepositInformation {
-  account_address: string;
-  account_name: string;
-  account_number: string;
-  bank_address: string;
-  bank_country: {
-    code: string;
-    name: string;
-  };
-  bank_name: string;
-  reference: string;
-  routing_number: string;
-}
-
-export interface SEPADepositInformation {
-  account_address: string;
-  account_name: string;
-  bank_address: string;
-  bank_country: {
-    code: string;
-    name: string;
-  };
-  bank_name: string;
-  iban: string;
-  reference: string;
-  swift: string;
-}
-
 export class AccountAPI {
   static readonly URL = {
-    ACCOUNTS: `/accounts`,
-    COINBASE_ACCOUNT: `/coinbase-accounts`,
+    ACCOUNTS: `/brokerage/accounts`,
+    COINBASE_ACCOUNT: `/accounts`,
   };
 
   constructor(private readonly apiClient: AxiosInstance) {}
 
   /**
-   * Get information for a single account. API key must belong to the same profile as the account.
+   * Get information for a single account.
    *
-   * @param accountId - Account ID belonging to the API key’s profile
-   * @see https://docs.cloud.coinbase.com/exchange/reference/exchangerestapi_getaccount
+   * @param accountId - Account ID is the Account.uuid
+   * @see https://docs.cloud.coinbase.com/advanced-trade-api/reference/retailbrokerageapi_getaccount
    */
   async getAccount(accountId: string): Promise<Account> {
     const resource = `${AccountAPI.URL.ACCOUNTS}/${accountId}`;
-    const response = await this.apiClient.get<Account>(resource);
-    return response.data;
+    const response = await this.apiClient.get(resource);
+    return response.data.account;
   }
 
   /**
-   * List account activity of the API key’s profile. Account activity either increases or decreases your account
-   * balance. Items are paginated and sorted latest first.
+   * Get information for a single account. API key must belong to the same profile as the account.
    *
-   * @param accountId - Account ID belonging to the API key’s profile
-   * @param pagination - Pagination field
-   * @see https://docs.cloud.coinbase.com/exchange/reference/exchangerestapi_getaccountledger
+   * @param accountId - Account ID is either Account.uuid || Account.currency || CoinbaseAccoount.currency.code
+   * @see https://docs.cloud.coinbase.com/sign-in-with-coinbase/docs/api-accounts#http-request-1
    */
-  async getAccountHistory(accountId: string, pagination?: Pagination): Promise<PaginatedData<AccountHistory>> {
-    const resource = `${AccountAPI.URL.ACCOUNTS}/${accountId}/ledger`;
-    const response = await this.apiClient.get<AccountHistory[]>(resource, {params: pagination});
-    return {
-      data: response.data,
-      pagination: {
-        after: response.headers['cb-after'],
-        before: response.headers['cb-before'],
-      },
-    };
-  }
-
-  /**
-   * List holds of an account that belong to the same profile as the API key. Holds are placed on an account for any
-   * active orders or pending withdraw requests. As an order is filled, the hold amount is updated. If an order is
-   * canceled, any remaining hold is removed. For a withdraw, once it is completed, the hold is removed.
-   *
-   * @param accountId - Account ID belonging to the API key’s profile
-   * @param pagination - Pagination field
-   * @see https://docs.cloud.coinbase.com/exchange/reference/exchangerestapi_getaccountholds
-   */
-  async getHolds(accountId: string, pagination?: Pagination): Promise<PaginatedData<Hold>> {
-    const resource = `${AccountAPI.URL.ACCOUNTS}/${accountId}/holds`;
-    const response = await this.apiClient.get<Hold[]>(resource, {params: pagination});
-    return {
-      data: response.data,
-      pagination: {
-        after: response.headers['cb-after'],
-        before: response.headers['cb-before'],
-      },
-    };
+  async getCoinbaseAccount(accountId: string): Promise<CoinbaseAccount> {
+    const resource = `${AccountAPI.URL.COINBASE_ACCOUNT}/${accountId}`;
+    const response = await this.apiClient.get(resource);
+    return response.data.data;
   }
 
   /**
    * Get a list of trading accounts from the profile of the API key.
    *
-   * @see https://docs.cloud.coinbase.com/exchange/reference/exchangerestapi_getaccounts
+   * @see https://docs.cloud.coinbase.com/advanced-trade-api/reference/retailbrokerageapi_getaccounts
    */
-  async listAccounts(): Promise<Account[]> {
+  async listAccounts(pagination?: Pagination): Promise<PaginatedData<Account>> {
     const resource = AccountAPI.URL.ACCOUNTS;
-    const response = await this.apiClient.get<Account[]>(resource);
-    return response.data;
+    if (pagination) {
+      pagination = formatPaginationIntoParams(pagination);
+    }
+    const response = await this.apiClient.get(resource, {params: {limit: 250, ...pagination}});
+    const position = response.data.cursor && response.data.cursor !== '' ? response.data.cursor : response.data.length;
+    return {
+      data: response.data.accounts,
+      pagination: {
+        after: (position - response.data.length).toString(),
+        before: position,
+        has_next: response.data.has_next || false,
+      },
+    };
   }
 
   /**
@@ -192,20 +137,19 @@ export class AccountAPI {
    *
    * @see https://docs.cloud.coinbase.com/exchange/reference/exchangerestapi_getcoinbaseaccounts
    */
-  async listCoinbaseAccounts(): Promise<CoinbaseAccount[]> {
+  async listCoinbaseAccounts(pagination?: Pagination): Promise<PaginatedData<CoinbaseAccount>> {
     const resource = AccountAPI.URL.COINBASE_ACCOUNT;
-    const response = await this.apiClient.get<CoinbaseAccount[]>(resource);
-    return response.data;
-  }
-
-  /**
-   * Generate a new deposit address for a given account.
-   *
-   * @see https://docs.cloud.coinbase.com/exchange/reference/exchangerestapi_postcoinbaseaccountaddresses
-   */
-  async generateDepositAddress(accountId: string): Promise<GeneratedAddress> {
-    const resource = `${AccountAPI.URL.COINBASE_ACCOUNT}/${accountId}/addresses`;
-    const response = await this.apiClient.post<GeneratedAddress>(resource);
-    return response.data;
+    if (pagination) {
+      pagination = formatPaginationIntoParams(pagination);
+    }
+    const response = await this.apiClient.get(resource, {params: {limit: 250, ...pagination}});
+    return {
+      data: response.data.data,
+      pagination: {
+        after: response.data.pagination.starting_after,
+        before: response.data.pagination.ending_before,
+        has_next: response.data.has_next || false,
+      },
+    };
   }
 }

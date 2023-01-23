@@ -1,8 +1,22 @@
 {
-  "available": "0",
-  "balance": "0.0000000000000000",
-  "currency": "BTC",
-  "hold": "0.0000000000000000",
-  "id": "322dfa88-e10d-4678-856d-2930eac3e62d",
-  "profile_id": "09a6bf48-aaf1-4332-a299-cc2982a7a69d"
+  "account": {
+    "uuid": "0afbdffa-d088-5ae3-a5fa-7d6c88f7d53d",
+    "name": "BTC Wallet",
+    "currency": "BTC",
+    "available_balance": {
+      "value": "0.29",
+      "currency": "BTC"
+    },
+    "default": true,
+    "active": true,
+    "created_at": "2021-02-11T05:47:41.592Z",
+    "updated_at": "2021-02-23T04:44:17.220Z",
+    "deleted_at": null,
+    "type": "ACCOUNT_TYPE_CRYPTO",
+    "ready": false,
+    "hold": {
+      "value": "0.000",
+      "currency": "BTC"
+    }
+  }
 }

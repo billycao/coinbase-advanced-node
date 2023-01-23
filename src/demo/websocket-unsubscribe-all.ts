@@ -5,15 +5,11 @@ const client = initClient();
 
 const channels = [
   {
-    name: WebSocketChannelName.LEVEL2,
+    channel: WebSocketChannelName.LEVEL2,
     product_ids: ['ETH-USD', 'ETH-EUR'],
   },
   {
-    name: WebSocketChannelName.HEARTBEAT,
-    product_ids: ['ETH-USD', 'ETH-EUR', 'LTC-USD'],
-  },
-  {
-    name: WebSocketChannelName.TICKER,
+    channel: WebSocketChannelName.TICKER,
     product_ids: ['ETH-BTC', 'ETH-EUR'],
   },
 ];
@@ -41,10 +37,6 @@ client.ws.on(WebSocketEvent.ON_SUBSCRIPTION_UPDATE, async subscriptions => {
     case 1:
       console.info(`We will unsubscribe from "${WebSocketChannelName.LEVEL2}" channel...`);
       await client.ws.unsubscribe(WebSocketChannelName.LEVEL2);
-      break;
-    case 2:
-      console.info(`We will unsubscribe from "${WebSocketChannelName.HEARTBEAT}" channel...`);
-      await client.ws.unsubscribe(WebSocketChannelName.HEARTBEAT);
       break;
     case 3:
       console.info(`We will unsubscribe from "${WebSocketChannelName.TICKER}" channel...`);

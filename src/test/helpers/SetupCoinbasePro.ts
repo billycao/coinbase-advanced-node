@@ -1,16 +1,18 @@
-import {CoinbasePro} from '../../CoinbasePro';
+import {ClientConnection, Coinbase} from '../../Coinbase';
 import nock from 'nock';
 import {TimeAPI} from '../../time/TimeAPI';
 
 declare global {
   /* eslint-disable no-var */
-  var client: CoinbasePro;
+  var client: Coinbase;
   var REST_URL: string;
+  var clientConnection: ClientConnection;
   /* eslint-enable no-var */
 }
 
 // URL to mock a server using "nock":
-global.REST_URL = CoinbasePro.SETUP.SANDBOX.REST;
+global.REST_URL = Coinbase.SETUP.PRODUCTION.REST_ADV_TRADE;
+global.clientConnection = Coinbase.SETUP.PRODUCTION;
 
 beforeEach(() => {
   nock(global.REST_URL)
@@ -28,10 +30,8 @@ beforeEach(() => {
       ];
     });
 
-  global.client = new CoinbasePro({
+  global.client = new Coinbase({
     apiKey: '',
     apiSecret: '',
-    passphrase: '',
-    useSandbox: true,
   });
 });

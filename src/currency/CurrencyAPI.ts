@@ -1,12 +1,12 @@
 import {AxiosInstance} from 'axios';
 
 export interface Currency {
-  details: CurrencyDetail;
+  details?: CurrencyDetail;
   id: string;
-  max_precision: string;
+  max_precision?: string;
   min_size: string;
   name: string;
-  status: string;
+  status?: string;
 }
 
 export enum CurrencyType {
@@ -38,11 +38,11 @@ export class CurrencyAPI {
    * Currency codes will conform to the ISO 4217 standard where possible.
    * Currencies which have or had no representation in ISO 4217 may use a custom code.
    *
-   * @see https://docs.cloud.coinbase.com/exchange/reference/exchangerestapi_getcurrencies
+   * @see https://docs.cloud.coinbase.com/sign-in-with-coinbase/docs/api-currencies
    */
   async listCurrencies(): Promise<Currency[]> {
     const resource = CurrencyAPI.URL.CURRENCIES;
-    const response = await this.apiClient.get<Currency[]>(resource);
-    return response.data;
+    const response = await this.apiClient.get(resource);
+    return response.data.data;
   }
 }

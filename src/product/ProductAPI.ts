@@ -1,32 +1,36 @@
-import {AxiosInstance, AxiosResponse} from 'axios';
-import {ISO_8601_MS_UTC, OrderSide, PaginatedData, Pagination} from '../payload/common';
+import {AxiosInstance} from 'axios';
+import {ISO_8601_MS_UTC, OrderSide, PaginatedData, Pagination, UNIX_STAMP} from '../payload/common';
 import {CandleBucketUtil} from './CandleBucketUtil';
 import {RESTClient} from '..';
+import {formatPaginationIntoParams} from '../util/shared-request';
 
 export interface Product {
-  base_currency: string;
+  auction_mode: boolean;
+  base_currency_id: string;
   base_increment: string;
-  /** Maximum order size */
   base_max_size: string;
-  /** Minimum order size */
   base_min_size: string;
+  base_name: string;
   cancel_only: boolean;
-  display_name: string;
-  id: string;
+  is_disabled: boolean;
   limit_only: boolean;
-  margin_enabled: boolean;
-  max_market_funds: string;
-  min_market_funds: string;
+  mid_market_price: string;
+  new: boolean;
   post_only: boolean;
-  quote_currency: string;
-  /**
-   * Increment steps for min/max order size. The order price must be a multiple of this increment (i.e. if the
-   * increment is 0.01, order prices of 0.001 or 0.021 would be rejected).
-   */
+  price: string;
+  price_percentage_change_24h: string;
+  product_id: string;
+  product_type: string;
+  quote_currency_id: string;
   quote_increment: string;
-  status: 'online';
-  status_message: string;
+  quote_max_size: string;
+  quote_min_size: string;
+  quote_name: string;
+  status: string;
   trading_disabled: boolean;
+  volume_24h: string;
+  volume_percentage_change_24h: string;
+  watched: boolean;
 }
 
 // Snapshot information about the last trade (tick), best bid/ask and 24h volume.
@@ -50,22 +54,42 @@ export interface ProductStats {
 }
 
 export interface Trade {
+  ask: string;
+  bid: string;
   price: string;
+  product_id: string;
   side: OrderSide;
   size: string;
   time: ISO_8601_MS_UTC;
-  trade_id: number;
+  trade_id: string;
 }
 
 /** Accepted granularity in seconds to group historic rates. */
-export enum CandleGranularity {
+export enum CandleGranularityNumbers {
   ONE_MINUTE = 60,
-  FIVE_MINUTES = 300,
-  FIFTEEN_MINUTES = 900,
+  FIVE_MINUTE = 300,
+  FIFTEEN_MINUTE = 900,
   ONE_HOUR = 3600,
-  SIX_HOURS = 21600,
+  SIX_HOUR = 21600,
   ONE_DAY = 86400,
+  THIRTY_MINUTE = 1800,
+  TWO_HOUR = 7200,
 }
+
+export enum CandleGranularity {
+  FIFTEEN_MINUTE = 'FIFTEEN_MINUTE',
+  FIVE_MINUTE = 'FIVE_MINUTE',
+  ONE_DAY = 'ONE_DAY',
+  ONE_HOUR = 'ONE_HOUR',
+  ONE_MINUTE = 'ONE_MINUTE',
+  SIX_HOUR = 'SIX_HOUR',
+  THIRTY_MINUTE = 'THIRTY_MINUTE',
+  TWO_HOUR = 'TWO_HOUR',
+}
+
+export const getNumericCandleGranularity = (key: CandleGranularity): number => {
+  return CandleGranularityNumbers[key as keyof typeof CandleGranularityNumbers];
+};
 
 export interface BaseHistoricRateRequest {
   /** Desired time slice in seconds. */
@@ -74,9 +98,9 @@ export interface BaseHistoricRateRequest {
 
 export interface HistoricRateRequestWithTimeSpan extends BaseHistoricRateRequest {
   /** Opening time (ISO 8601) of last candle, i.e. "2020-04-28T23:00:00.000Z" */
-  end: ISO_8601_MS_UTC;
+  end: ISO_8601_MS_UTC | UNIX_STAMP;
   /** Opening time (ISO 8601) of first candle, i.e. "2020-04-28T00:00:00.000Z" */
-  start: ISO_8601_MS_UTC;
+  start: ISO_8601_MS_UTC | UNIX_STAMP;
 }
 
 export type HistoricRateRequest = BaseHistoricRateRequest | HistoricRateRequestWithTimeSpan;
@@ -179,9 +203,15 @@ export enum ProductEvent {
   NEW_CANDLE = 'ProductEvent.NEW_CANDLE',
 }
 
+export interface ProductsQueryParams {
+  limit?: number; // how many
+  offset?: number; // 'starting after'
+  product_type: string;
+}
+
 export class ProductAPI {
   static readonly URL = {
-    PRODUCTS: `/products`,
+    PRODUCTS: `/brokerage/products`,
   };
 
   private watchCandlesConfig: Map<string, CandleWatcherConfig> = new Map();
@@ -198,37 +228,44 @@ export class ProductAPI {
    *
    * @param productId - Representation for base and counter
    * @param [params] - Desired timespan
-   * @see https://docs.cloud.coinbase.com/exchange/reference/exchangerestapi_getproductcandles
+   * @see https://docs.cloud.coinbase.com/advanced-trade-api/reference/retailbrokerageapi_getcandles
    */
   async getCandles(productId: string, params: HistoricRateRequest): Promise<Candle[]> {
     const resource = `${ProductAPI.URL.PRODUCTS}/${productId}/candles`;
 
-    const candleSizeInMillis = params.granularity * 1000;
+    if (!(params as any).end) {
+      (params as any).end = Math.floor(Date.now() / 1000);
+    }
+
+    const candleSizeInMillis = getNumericCandleGranularity(params.granularity) * 1000;
     const potentialParams = params as HistoricRateRequestWithTimeSpan;
 
     let rawCandles: RawCandle[] = [];
 
     if (potentialParams.start && potentialParams.end) {
-      const fromInMillis = new Date(potentialParams.start).getTime();
-      const toInMillis = new Date(potentialParams.end).getTime();
+      const fromInMillis =
+        typeof potentialParams.start === 'number'
+          ? potentialParams.start * 1000
+          : new Date(potentialParams.start).getTime();
+      const toInMillis =
+        typeof potentialParams.end === 'number' ? potentialParams.end * 1000 : new Date(potentialParams.end).getTime();
 
       const bucketsInMillis = CandleBucketUtil.getBucketsInMillis(fromInMillis, toInMillis, candleSizeInMillis);
       const bucketsInISO = CandleBucketUtil.getBucketsInISO(bucketsInMillis);
 
       for (let index = 0; index < bucketsInISO.length; index++) {
-        const bucket = bucketsInISO[index];
-        const response = await this.apiClient.get<RawCandle[]>(resource, {
+        const response = await this.apiClient.get<any>(resource, {
           params: {
-            end: bucket.stop,
+            end: Math.floor(toInMillis / 1000),
             granularity: params.granularity,
-            start: bucket.start,
+            start: Math.floor(fromInMillis / 1000),
           },
         });
-        rawCandles.push(...response.data);
+        rawCandles.push(...response.data.candles);
       }
     } else {
-      const response = await this.apiClient.get<RawCandle[]>(resource, {params});
-      rawCandles = [...response.data];
+      const response = await this.apiClient.get<any>(resource, {params});
+      rawCandles = rawCandles.concat([...response.data.candles]);
     }
 
     return rawCandles
@@ -293,7 +330,7 @@ export class ProductAPI {
   /**
    * Get trading details for a specified product.
    *
-   * @see https://docs.cloud.coinbase.com/exchange/reference/exchangerestapi_getproduct
+   * @see https://docs.cloud.coinbase.com/advanced-trade-api/reference/retailbrokerageapi_getproduct
    */
   async getProduct(productId: string): Promise<Product | undefined> {
     const resource = `${ProductAPI.URL.PRODUCTS}/${productId}`;
@@ -304,12 +341,12 @@ export class ProductAPI {
   /**
    * Get trading details of all available products.
    *
-   * @see https://docs.cloud.coinbase.com/exchange/reference/exchangerestapi_getproducts
+   * @see https://docs.cloud.coinbase.com/advanced-trade-api/reference/retailbrokerageapi_getproducts
    */
-  async getProducts(): Promise<Product[]> {
+  async getProducts(params?: ProductsQueryParams): Promise<Product[]> {
     const resource = ProductAPI.URL.PRODUCTS;
-    const response = await this.apiClient.get<Product[]>(resource);
-    return response.data;
+    const response = await this.apiClient.get(resource, {params: {limit: 999, ...(params || {})}});
+    return response.data.products;
   }
 
   /**
@@ -317,59 +354,22 @@ export class ProductAPI {
    *
    * @param productId - Representation for base and counter
    * @param pagination - Pagination field
-   * @see https://docs.cloud.coinbase.com/exchange/reference/exchangerestapi_getproducttrades
+   * @see https://docs.cloud.coinbase.com/advanced-trade-api/reference/retailbrokerageapi_getmarkettrades
    */
   async getTrades(productId: string, pagination?: Pagination): Promise<PaginatedData<Trade>> {
-    const resource = `${ProductAPI.URL.PRODUCTS}/${productId}/trades`;
-    const response = await this.apiClient.get<Trade[]>(resource, {params: pagination});
+    const resource = `${ProductAPI.URL.PRODUCTS}/${productId}/ticker`;
+    let params: any = {limit: pagination?.limit || 999};
+    if (pagination) {
+      params = formatPaginationIntoParams(pagination, false, params);
+    }
+    const response = await this.apiClient.get(resource, {params});
     return {
-      data: response.data,
+      data: response.data.trades,
       pagination: {
-        after: response.headers['cb-after'],
-        before: response.headers['cb-before'],
+        after: (pagination?.after || 0).toString(),
+        before: response.data.num_products,
       },
     };
-  }
-
-  /**
-   * Get a list of open orders for a product. The amount of detail shown can be customized with the level parameter.
-   * By default, only the inside (i.e. best) bid and ask are returned. This is equivalent to a book depth of 1 level.
-   *
-   * @param productId - Representation for base and counter
-   * @param params - Amount of detail
-   * @see https://docs.cloud.coinbase.com/exchange/reference/exchangerestapi_getproductbook
-   */
-  async getProductOrderBook(
-    productId: string,
-    params?: {level: OrderBookLevel.ONLY_BEST_BID_AND_ASK}
-  ): Promise<OrderBookLevel1>;
-  async getProductOrderBook(
-    productId: string,
-    params?: {level: OrderBookLevel.TOP_50_BIDS_AND_ASKS}
-  ): Promise<OrderBookLevel2>;
-  async getProductOrderBook(
-    productId: string,
-    params?: {level: OrderBookLevel.FULL_ORDER_BOOK}
-  ): Promise<OrderBookLevel3>;
-  async getProductOrderBook(
-    productId: string,
-    params: OrderBookRequestParameters = {level: OrderBookLevel.ONLY_BEST_BID_AND_ASK}
-  ): Promise<OrderBook> {
-    const resource = `${ProductAPI.URL.PRODUCTS}/${productId}/book`;
-    let response: AxiosResponse<OrderBookLevel1 | OrderBookLevel2 | OrderBookLevel3>;
-
-    switch (params.level) {
-      case OrderBookLevel.TOP_50_BIDS_AND_ASKS:
-        response = await this.apiClient.get<OrderBookLevel2>(resource, {params});
-        break;
-      case OrderBookLevel.FULL_ORDER_BOOK:
-        response = await this.apiClient.get<OrderBookLevel3>(resource, {params});
-        break;
-      default:
-        response = await this.apiClient.get<OrderBookLevel1>(resource, {params});
-    }
-
-    return response.data;
   }
 
   /**
@@ -379,27 +379,40 @@ export class ProductAPI {
    * @see https://docs.cloud.coinbase.com/exchange/reference/exchangerestapi_getproductstats
    */
   async getProductStats(productId: string): Promise<ProductStats> {
-    const resource = `${ProductAPI.URL.PRODUCTS}/${productId}/stats`;
-    const response = await this.apiClient.get<ProductStats>(resource);
-    return response.data;
+    const dateOffset = 24 * 60 * 1000;
+    return this.getCandles(productId, {
+      end: Date.now() / 1000,
+      granularity: CandleGranularity.ONE_DAY,
+      start: Math.floor(Date.now() / 1000 - dateOffset),
+    }).then((res: Candle[]) => {
+      const latest = res[res.length - 1];
+      return {
+        high: latest.high.toString(),
+        last: latest.close.toString(),
+        low: latest.low.toString(),
+        open: latest.open.toString(),
+        volume: latest.volume.toString(),
+        volume_30day: 'unknown',
+      };
+    });
   }
 
-  /**
-   * Get snapshot information about the last trade (tick), best bid/ask and 24h volume.
-   *
-   * @param productId - Representation for base and counter
-   * @see https://docs.cloud.coinbase.com/exchange/reference/exchangerestapi_getproductticker
-   */
-  async getProductTicker(productId: string): Promise<ProductTicker> {
-    const resource = `${ProductAPI.URL.PRODUCTS}/${productId}/ticker`;
-    const response = await this.apiClient.get<ProductTicker>(resource);
-    return response.data;
-  }
+  // /**
+  //  * Get snapshot information about the last trade (tick), best bid/ask and 24h volume.
+  //  *
+  //  * @param productId - Representation for base and counter
+  //  * @see https://docs.cloud.coinbase.com/exchange/reference/exchangerestapi_getproductticker
+  //  */
+  // async getProductTicker(productId: string): Promise<ProductTicker> {
+  //   const resource = `${ProductAPI.URL.PRODUCTS}/${productId}/ticker`;
+  //   const response = await this.apiClient.get<ProductTicker>(resource);
+  //   return response.data;
+  // }
 
-  private mapCandle(payload: number[], sizeInMillis: number, productId: string): Candle {
-    const [time, low, high, open, close, volume] = payload;
+  private mapCandle(payload: any, sizeInMillis: number, productId: string): Candle {
+    const {start, low, high, open, close, volume} = payload;
     const [base, counter] = productId.split('-');
-    const openTimeInMillis = time * 1000; // Map seconds to milliseconds
+    const openTimeInMillis = parseFloat(start) * 1000; // Map seconds to milliseconds
     return {
       base,
       close,
@@ -433,8 +446,6 @@ export class ProductAPI {
       start: expectedTimestampISO,
     });
 
-    // Also handles the case when candles are skipped by the exchange
-    // @see https://github.com/bennycode/coinbase-pro-node/issues/306
     const matches = candles.filter(candle => candle.openTimeInMillis >= new Date(expectedTimestampISO).getTime());
     if (matches.length > 0) {
       const matchedCandle = matches[0];
@@ -444,7 +455,7 @@ export class ProductAPI {
 
   private startCandleInterval(productId: string, granularity: CandleGranularity): NodeJS.Timeout {
     // Check for new candles in the smallest candle interval possible, which is 1 minute
-    const updateInterval = CandleGranularity.ONE_MINUTE * 1000;
+    const updateInterval = CandleGranularityNumbers.ONE_MINUTE * 1000;
     return global.setInterval(async () => {
       await this.checkNewCandles(productId, granularity);
     }, updateInterval);

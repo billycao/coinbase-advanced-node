@@ -1,10 +1,33 @@
 import getAccount from '../test/fixtures/rest/accounts/322dfa88-e10d-4678-856d-2930eac3e62d/GET-200.json';
-import getAccountHistory from '../test/fixtures/rest/accounts/322dfa88-e10d-4678-856d-2930eac3e62d/ledger/GET-200.json';
-import getHolds from '../test/fixtures/rest/accounts/322dfa88-e10d-4678-856d-2930eac3e62d/holds/GET-200.json';
-import genAddress from '../test/fixtures/rest/accounts/322dfa88-e10d-4678-856d-2930eac3e62d/addresses/POST-200.json';
 import listAccounts from '../test/fixtures/rest/accounts/GET-200.json';
 import nock from 'nock';
-import {AccountAPI, AccountType} from './AccountAPI';
+import {AccountAPI} from './AccountAPI';
+
+const btcAsset = {
+  allow_deposits: true,
+  allow_withdrawals: true,
+  balance: {amount: '0.', currency: 'BTC'},
+  created_at: '2021-02-11T05:47:41Z',
+  currency: {
+    address_regex:
+      '^([13][a-km-zA-HJ-NP-Z1-9]{25,34})|^(bc1[qzry9x8gf2tvdw0s3jn54khce6mua7l]([qpzry9x8gf2tvdw0s3jn54khce6mua7l]{38}|[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{58}))$',
+    asset_id: '5b71fc48-3dd3-540c-809b-f8c94d0e68b5',
+    code: 'BTC',
+    color: '#F7931A',
+    exponent: 8,
+    name: 'Bitcoin',
+    slug: 'bitcoin',
+    sort_index: 100,
+    type: 'crypto',
+  },
+  id: '0afbdffa-d088-5ae3-a5fa-3312132123123',
+  name: 'BTC Wallet',
+  primary: true,
+  resource: 'account',
+  resource_path: '/v2/accounts/0afbdffa-d088-5ae3-a5fa-123412342342',
+  type: 'wallet',
+  updated_at: '2021-02-23T04:44:17Z',
+};
 
 describe('AccountAPI', () => {
   afterAll(() => nock.cleanAll());
@@ -20,83 +43,53 @@ describe('AccountAPI', () => {
 
     nock(global.REST_URL)
       .persist()
-      .get(`${AccountAPI.URL.ACCOUNTS}/322dfa88-e10d-4678-856d-2930eac3e62d/ledger`)
+      .get(`${AccountAPI.URL.COINBASE_ACCOUNT}`)
       .query(true)
-      .reply(200, JSON.stringify(getAccountHistory));
-
-    nock(global.REST_URL)
-      .persist()
-      .get(`${AccountAPI.URL.ACCOUNTS}/322dfa88-e10d-4678-856d-2930eac3e62d/holds`)
-      .query(true)
-      .reply(200, JSON.stringify(getHolds));
-
-    nock(global.REST_URL)
-      .persist()
-      .post(`${AccountAPI.URL.COINBASE_ACCOUNT}/322dfa88-e10d-4678-856d-2930eac3e62d/addresses`)
-      .query(true)
-      .reply(200, JSON.stringify(genAddress));
+      .reply(
+        200,
+        JSON.stringify({
+          data: [btcAsset],
+          pagination: {
+            ending_before: null,
+            limit: 25,
+            next_uri: null,
+            order: 'desc',
+            previous_uri: null,
+            starting_after: null,
+          },
+        })
+      );
   });
 
   describe('listAccounts', () => {
     it('gets a list of trading accounts', async () => {
       const accounts = await global.client.rest.account.listAccounts();
-      expect(accounts.length).toBe(7);
+      expect(accounts.data.length).toBeGreaterThan(0);
     });
   });
 
   describe('listCoinbaseAccounts', () => {
     it('returns the list of the coinbase accounts for a given user', async () => {
-      const response = [
-        {
-          active: true,
-          balance: '0.00000000',
-          currency: 'ETH',
-          id: 'fc3a8a57-7142-542d-8436-95a3d82e1622',
-          name: 'ETH Wallet',
-          primary: false,
-          type: AccountType.WALLET,
-        },
-      ];
-      nock(global.REST_URL).get(AccountAPI.URL.COINBASE_ACCOUNT).reply(200, response);
       const coinbaseAccounts = await global.client.rest.account.listCoinbaseAccounts();
-      expect(coinbaseAccounts.length).toBeGreaterThanOrEqual(1);
-      expect(coinbaseAccounts[0]).toEqual(response[0]);
+      expect(coinbaseAccounts.data.length).toBeGreaterThanOrEqual(1);
+      expect(coinbaseAccounts.data[0].currency.code).toBe('BTC');
     });
   });
 
   describe('getAccount', () => {
     it('gets information for a single account', async () => {
-      const accounts = await global.client.rest.account.listAccounts();
-      const accountId = accounts[0].id;
+      const accountId = '322dfa88-e10d-4678-856d-2930eac3e62d';
       const account = await global.client.rest.account.getAccount(accountId);
-      expect(account.id).toBe(accountId);
+      expect(account.uuid).toBe(accountId);
     });
   });
 
-  describe('getAccountHistory', () => {
-    it('lists the account activity', async () => {
-      const accounts = await global.client.rest.account.listAccounts();
-      const accountId = accounts[0].id;
-      const history = await global.client.rest.account.getAccountHistory(accountId, {limit: 100});
-      expect(history).toBeDefined();
-    });
-  });
-
-  describe('getHolds', () => {
-    it('lists active orders or pending withdraw requests', async () => {
-      const accounts = await global.client.rest.account.listAccounts();
-      const accountId = accounts[0].id;
-      const holds = await global.client.rest.account.getHolds(accountId);
-      expect(holds).toBeDefined();
-    });
-  });
-
-  describe('generateAddress', () => {
-    it('generates an address for an account', async () => {
-      const newDepositAddress = await global.client.rest.account.generateDepositAddress(
-        '322dfa88-e10d-4678-856d-2930eac3e62d'
-      );
-      expect(newDepositAddress.address).toBe('0xd518A6B23D8bCA15B9cC46a00Be8a818E34Ca79E');
+  describe('getCoinbaseAccount', () => {
+    it('gets information for a single coinbase account', async () => {
+      const accounts = await global.client.rest.account.listCoinbaseAccounts();
+      const accountId = accounts.data[0].id;
+      const account = await global.client.rest.account.getCoinbaseAccount(accountId);
+      expect(account.id).toBe(btcAsset.id);
     });
   });
 });

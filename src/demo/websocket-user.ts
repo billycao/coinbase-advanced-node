@@ -4,7 +4,7 @@ import {WebSocketChannelName, WebSocketEvent} from '..';
 const client = initClient();
 
 const channel = {
-  name: WebSocketChannelName.USER,
+  channel: WebSocketChannelName.USER,
   product_ids: ['BTC-USD'],
 };
 

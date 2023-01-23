@@ -1,6 +1,5 @@
 import nock from 'nock';
 import verifyPayload from '../test/fixtures/rest/users/self/verify/GET-200.json';
-import trailingVolume from '../test/fixtures/rest/users/self/trailing-volume/GET-200.json';
 import {UserAPI} from './UserAPI';
 
 describe('UserAPI', () => {
@@ -9,7 +8,7 @@ describe('UserAPI', () => {
   beforeAll(() => {
     nock(global.REST_URL)
       .persist()
-      .get(`${UserAPI.URL.USERS}/self/verify`)
+      .get(`${UserAPI.URL.USERS}/9da7a204-544e-5fd1-9a12-61176c5d4cd8`)
       .query(true)
       .reply(() => {
         return [200, JSON.stringify(verifyPayload)];
@@ -17,22 +16,33 @@ describe('UserAPI', () => {
 
     nock(global.REST_URL)
       .persist()
-      .get(`${UserAPI.URL.USERS}/self/trailing-volume`)
+      .get(`${UserAPI.URL.USERS}/auth`)
       .query(true)
-      .reply(200, JSON.stringify(trailingVolume));
+      .reply(() => {
+        return [
+          200,
+          JSON.stringify({
+            data: {
+              method: 'oauth',
+              oauth_meta: {},
+              scopes: ['wallet:user:read', 'wallet:user:email'],
+            },
+          }),
+        ];
+      });
   });
 
-  describe('verifyAuthentication', () => {
+  describe('fetchUserInfo', () => {
     it('verifies the authentication data', async () => {
-      const verifiedUser = await global.client.rest.user.verifyAuthentication();
-      expect(verifiedUser.id).toBe('7cbb4d09b95cee4dea90e9a7');
+      const verifiedUser = await global.client.rest.user.fetchUserInfo('9da7a204-544e-5fd1-9a12-61176c5d4cd8');
+      expect(verifiedUser.name).toBe('User One');
     });
   });
 
-  describe('getTrailingVolume', () => {
-    it('lists your 30-day trailing volume', async () => {
-      const trailingVolume = await global.client.rest.user.getTrailingVolume();
-      expect(trailingVolume[0].product_id).toBe('BTC-EUR');
+  describe('fetchAuthorizationInfo', () => {
+    it('verifies the authentication data', async () => {
+      const verifiedUser = await global.client.rest.user.fetchAuthorizationInfo();
+      expect(verifiedUser.scopes.length).toBeGreaterThan(1);
     });
   });
 });

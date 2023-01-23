@@ -1,4 +1,4 @@
-import {CandleBucketUtil, CandleGranularity} from '.';
+import {CandleBucketUtil, CandleGranularity, CandleGranularityNumbers} from '.';
 import oneWeekInMinutes from '../test/fixtures/rest/products/BTC-USD/candles/BTC-USD-1581292800000-60.json';
 
 describe('CandleBucketUtil', () => {
@@ -96,7 +96,7 @@ describe('CandleBucketUtil', () => {
     it('maps a number to granularity', () => {
       const number = 60;
       const granularity = CandleBucketUtil.mapGranularity(number);
-      expect(granularity).toBe(CandleGranularity.ONE_MINUTE);
+      expect(granularity).toBe(CandleGranularityNumbers.ONE_MINUTE);
     });
   });
 
@@ -104,7 +104,7 @@ describe('CandleBucketUtil', () => {
     it('calculates the amount of required candles for a week', () => {
       const fromInMillis = new Date('2020-02-03T00:00:00.000Z').getTime();
       const toInMillis = new Date('2020-02-10T00:00:00.000Z').getTime();
-      const candleSizeInMillis = CandleGranularity.ONE_DAY * 1000;
+      const candleSizeInMillis = CandleGranularityNumbers.ONE_DAY * 1000;
 
       const candles = CandleBucketUtil.expectedBuckets(fromInMillis, toInMillis, candleSizeInMillis);
 
@@ -114,7 +114,7 @@ describe('CandleBucketUtil', () => {
     it('calculates the amount of required candles for a year', () => {
       const fromInMillis = new Date('2019-01-01T00:00:00.000Z').getTime();
       const toInMillis = new Date('2020-01-01T00:00:00.000Z').getTime();
-      const candleSizeInMillis = CandleGranularity.ONE_DAY * 1000;
+      const candleSizeInMillis = CandleGranularityNumbers.ONE_DAY * 1000;
 
       const candles = CandleBucketUtil.expectedBuckets(fromInMillis, toInMillis, candleSizeInMillis);
 
@@ -128,7 +128,7 @@ describe('CandleBucketUtil', () => {
 
       const fromInMillis = new Date('2019-01-01T00:00:00.000Z').getTime();
       const toInMillis = new Date('2020-01-01T00:00:00.000Z').getTime();
-      const candleSizeInMillis = CandleGranularity.ONE_DAY * 1000;
+      const candleSizeInMillis = CandleGranularityNumbers.ONE_DAY * 1000;
 
       const actual = CandleBucketUtil.getBucketsInMillis(fromInMillis, toInMillis, candleSizeInMillis);
 

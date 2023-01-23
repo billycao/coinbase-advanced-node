@@ -1,16 +1,16 @@
 import crypto from 'crypto';
-import {ClientAuthentication} from '../CoinbasePro';
-import {Buffer} from 'buffer/';
+import {ClientAuthentication} from '../Coinbase';
+// import {Buffer} from 'buffer/';
 
 export interface RequestSetup {
   httpMethod: string;
   payload: string;
   requestPath: string;
+  ws?: boolean;
 }
 
 export interface SignedRequest {
-  key: string;
-  passphrase: string;
+  key: string | null;
   signature: string;
   timestamp: number;
 }
@@ -18,16 +18,14 @@ export interface SignedRequest {
 export class RequestSigner {
   // https://docs.cloud.coinbase.com/exchange/docs/authorization-and-authentication#creating-a-request
   static signRequest(auth: ClientAuthentication, setup: RequestSetup, clockSkew: number): SignedRequest {
-    const timestamp = Date.now() / 1000 + clockSkew;
-    const what = `${timestamp}${setup.httpMethod}${setup.requestPath}${setup.payload}`;
-    const key = Buffer.from(auth.apiSecret, 'base64');
-    const hmac = crypto.createHmac('sha256', key);
-    const signature = hmac.update(what).digest('base64');
+    const timestamp = Math.floor(Date.now() / 1000) + clockSkew;
+    const what = `${timestamp}${setup.httpMethod.toUpperCase()}${setup.requestPath}${setup.payload}`;
+    const sig = crypto.createHmac('sha256', auth.apiSecret).update(what);
+    const signature = sig.digest('hex');
 
     return {
-      key: auth.apiKey,
-      passphrase: auth.passphrase,
-      signature,
+      key: auth.oauthToken ? null : auth.apiKey,
+      signature: auth.oauthToken || signature,
       timestamp,
     };
   }

@@ -1,34 +1,43 @@
 import {AxiosInstance} from 'axios';
+import {
+  BasicTransactionInformation,
+  ISO_8601_MS_UTC,
+  NewFiatTransaction,
+  PaginatedData,
+  Pagination,
+  ResourceRef,
+  TransactionAmount,
+  TransactionStatus,
+} from '../payload';
+import {SharedRequestService} from '../util/shared-request';
 
-export interface CryptoWithdrawal {
-  amount: string;
-  currency: string;
-  id: string;
-}
-
-export interface PaymentMethodWithdrawal extends CryptoWithdrawal {
-  payout_at: string;
-}
-
-export interface CryptoWithdrawalRequest {
-  add_network_fee_to_total?: boolean;
-  amount: string;
-  crypto_address: string;
-  currency: string;
-  destination_tag?: string;
-  no_destination_tag?: boolean;
-}
-
-export interface CoinbaseAccountWithdrawalRequest {
-  amount: string;
-  coinbase_account_id: string;
-  currency: string;
+export enum PaymenMethodTypes {
+  /** Regular US bank account */
+  ACH_BANK_ACCOUNT = 'ach_bank_account',
+  /** Bank wire (US only) */
+  BANK_WIRE = 'bank_wire',
+  /** Credit card (can't be used for buying/selling) */
+  CREDIT_CARD = 'credit_card',
+  /**  Canadian EFT bank account */
+  EFT_BANK_ACCOUNT = 'eft_bank_account',
+  /** Fiat nominated Coinbase account */
+  FIAT_ACCOUNT = 'fiat_account',
+  /** iDeal bank account (Europe) */
+  IDEAL_BANK_ACCOUNT = 'ideal_bank_account',
+  /** Interac Online for Canadian bank accounts */
+  INTERAC = 'interac',
+  /** Secure3D verified payment card */
+  SECURE_3D_CARD = 'secure3d_card',
+  /** European SEPA bank account */
+  SEPA_BANK_ACCOUNT = 'sepa_bank_account',
 }
 
 export interface PaymentMethodWithdrawalRequest {
+  accountId: string;
   amount: string;
+  commit?: boolean;
   currency: string;
-  payment_method_id: string;
+  payment_method: string;
 }
 
 export interface WithdrawalFeeEstimate {
@@ -47,13 +56,36 @@ export interface PaymentMethodLimit {
   };
 }
 
+export interface WithdrawalInformation extends BasicTransactionInformation {
+  amount: TransactionAmount;
+  committed: boolean;
+  created_at: ISO_8601_MS_UTC;
+  fee: TransactionAmount;
+  id: string;
+  payment_method: ResourceRef;
+  payout_at: ISO_8601_MS_UTC;
+  resource: string;
+  resource_path: string;
+  status: TransactionStatus;
+  subtotal: TransactionAmount;
+  transaction: ResourceRef;
+  updated_at: ISO_8601_MS_UTC;
+}
+
+/**
+ * @see https://docs.cloud.coinbase.com/sign-in-with-coinbase/docs/api-payment-methods#payment-method-resource
+ */
 export interface PaymentMethod {
   allow_buy: boolean;
   allow_deposit: boolean;
   allow_sell: boolean;
   allow_withdraw: boolean;
+  created_at: ISO_8601_MS_UTC;
   currency: string;
+  fiat_account: ResourceRef;
   id: string;
+  instant_buy: boolean;
+  instant_sell: boolean;
   limits: {
     buy: PaymentMethodLimit[];
     deposit: PaymentMethodLimit[];
@@ -61,80 +93,52 @@ export interface PaymentMethod {
     sell: PaymentMethodLimit[];
   };
   name: string;
-  primary_buy: boolean;
-  primary_sell: boolean;
-  type: string;
+  primary_buy: false;
+  primary_sell: false;
+  resource: string;
+  resource_path: string;
+  type: PaymenMethodTypes;
+  updated_at: ISO_8601_MS_UTC;
 }
 
 export class WithdrawAPI {
   static readonly URL = {
     LIST_PAYMENT_METHODS: '/payment-methods',
     WITHDRAWALS: {
-      COINBASE_ACCOUNT: '/withdrawals/coinbase-account',
-      CRYPTO: '/withdrawals/crypto',
-      FEE_ESTIMATE: '/withdrawals/fee-estimate',
-      PAYMENT_METHOD: '/withdrawals/payment-method',
+      PAYMENT_METHOD: '/acounts',
     },
   };
 
-  constructor(private readonly apiClient: AxiosInstance) {}
+  static readonly SHARED_REF = 'withdrawals';
 
-  /**
-   * Withdraws funds to a crypto address.
-   *
-   * @param amount - The amount to withdraw
-   * @param currency - The type of currency
-   * @param cryptoAddress - A crypto address of the recipient
-   * @param destinationTag - A destination tag for currencies that support one
-   * @param addNetworkFeeToTotal - A boolean flag to add the network fee on top of the amount.
-   * If this is blank, it will default to deducting the network fee from the amount.
-   * @see https://docs.cloud.coinbase.com/exchange/reference/exchangerestapi_postwithdrawcrypto
-   */
-  async withdrawToCryptoAddress(
-    amount: string,
-    currency: string,
-    cryptoAddress: string,
-    destinationTag?: string,
-    addNetworkFeeToTotal?: boolean
-  ): Promise<CryptoWithdrawal> {
-    const resource = WithdrawAPI.URL.WITHDRAWALS.CRYPTO;
-    const withdrawal: CryptoWithdrawalRequest = {
-      add_network_fee_to_total: addNetworkFeeToTotal,
-      amount,
-      crypto_address: cryptoAddress,
-      currency,
-    };
-    if (destinationTag) {
-      withdrawal.destination_tag = destinationTag;
-    } else {
-      withdrawal.no_destination_tag = true;
-    }
-    const response = await this.apiClient.post<CryptoWithdrawal>(resource, withdrawal);
-    return response.data;
+  private sharedService: SharedRequestService;
+
+  constructor(private readonly apiClient: AxiosInstance) {
+    this.sharedService = new SharedRequestService(apiClient, WithdrawAPI.SHARED_REF);
   }
 
   /**
-   * Withdraw funds to a Coinbase account. You can move funds between your Coinbase accounts and your Coinbase Pro
-   * trading accounts within your daily limits.
+   * Get a list of withdrawals of an account.
+   * Withdrawals are only listed for fiat accounts and wallets.
+   * To list withdrawals associated with a crypto account/wallet, use List Transactions.
    *
-   * @param amount - The amount to withdraw
-   * @param currency - The type of currency
-   * @param coinbaseAccountId - ID of the Coinbase or Coinbase Pro account
-   * @see https://docs.cloud.coinbase.com/exchange/reference/exchangerestapi_postwithdrawcoinbaseaccount
+   * @param account - account id the deposit was to
+   * @param pagination - Pagination field
+   * @see https://docs.cloud.coinbase.com/sign-in-with-coinbase/docs/api-withdrawals#list-withdrawals
    */
-  async withdrawToCoinbaseAccount(
-    amount: string,
-    currency: string,
-    coinbaseAccountId: string
-  ): Promise<CryptoWithdrawal> {
-    const resource = WithdrawAPI.URL.WITHDRAWALS.COINBASE_ACCOUNT;
-    const withdrawal: CoinbaseAccountWithdrawalRequest = {
-      amount,
-      coinbase_account_id: coinbaseAccountId,
-      currency,
-    };
-    const response = await this.apiClient.post<CryptoWithdrawal>(resource, withdrawal);
-    return response.data;
+  async listWithdrawals(account: string, pagination?: Pagination): Promise<PaginatedData<WithdrawalInformation>> {
+    return this.sharedService.queryAll<WithdrawalInformation>(account, pagination);
+  }
+
+  /**
+   * Get information on a single withdrawal.
+   *
+   * @param accountId - id of the account
+   * @param withdrawalId - id of the requested resource
+   * @see https://docs.cloud.coinbase.com/sign-in-with-coinbase/docs/api-withdrawals#show-a-withdrawal
+   */
+  async getWithdrawal(accountId: string, withdrawalId: string): Promise<WithdrawalInformation> {
+    return this.sharedService.getById<WithdrawalInformation>(accountId, withdrawalId);
   }
 
   /**
@@ -143,46 +147,46 @@ export class WithdrawAPI {
    * @param amount - The amount to withdraw
    * @param currency - The type of currency
    * @param paymentMethodId - ID of the payment method
-   * @see https://docs.cloud.coinbase.com/exchange/reference/exchangerestapi_postwithdrawpaymentmethod
+   * @param accountId - The account to withdraw from
+   * @param commit - Commit this transaction (default is true)
+   * @see https://docs.cloud.coinbase.com/sign-in-with-coinbase/docs/api-withdrawals#withdraw-funds
    */
   async withdrawToPaymentMethod(
     amount: string,
     currency: string,
-    paymentMethodId: string
-  ): Promise<PaymentMethodWithdrawal> {
-    const resource = WithdrawAPI.URL.WITHDRAWALS.PAYMENT_METHOD;
-    const withdrawal: PaymentMethodWithdrawalRequest = {
+    paymentMethodId: string,
+    accountId: string,
+    commit: boolean = true
+  ): Promise<WithdrawalInformation> {
+    const withdrawal: NewFiatTransaction = {
+      accountId,
       amount,
+      commit,
       currency,
-      payment_method_id: paymentMethodId,
+      payment_method: paymentMethodId,
     };
-    const response = await this.apiClient.post<PaymentMethodWithdrawal>(resource, withdrawal);
-    return response.data;
+    return this.sharedService.createNew<WithdrawalInformation>(withdrawal);
   }
 
   /**
-   * Get the network fee estimate when sending to the given address.
+   * Completes a withdrawal that is created in commit: false state.
    *
-   * @param currency - The type of currency
-   * @param cryptoAddress - A crypto address of the recipient
-   * @see https://docs.cloud.coinbase.com/exchange/reference/exchangerestapi_getwithdrawfeeestimate
+   * @param accountId - The account withdrawal is pulling from
+   * @param withdrawalId - The id of the transaction
+   * @see https://docs.cloud.coinbase.com/sign-in-with-coinbase/docs/api-withdrawals#commit-a-withdrawal
    */
-  async getFeeEstimate(currency: string, cryptoAddress: string): Promise<WithdrawalFeeEstimate> {
-    const resource = WithdrawAPI.URL.WITHDRAWALS.FEE_ESTIMATE;
-    const response = await this.apiClient.get<WithdrawalFeeEstimate>(resource, {
-      params: {crypto_address: cryptoAddress, currency},
-    });
-    return response.data;
+  async commitWithdrawal(accountId: string, withdrawalId: string): Promise<WithdrawalInformation> {
+    return this.sharedService.commitPending<WithdrawalInformation>(accountId, withdrawalId);
   }
 
   /**
    * Get a list of your payment methods.
    *
-   * @see https://docs.cloud.coinbase.com/exchange/reference/exchangerestapi_getpaymentmethods
+   * @see https://docs.cloud.coinbase.com/sign-in-with-coinbase/docs/api-payment-methods#http-request
    */
   async getPaymentMethods(): Promise<PaymentMethod[]> {
     const resource = WithdrawAPI.URL.LIST_PAYMENT_METHODS;
-    const response = await this.apiClient.get<PaymentMethod[]>(resource);
-    return response.data;
+    const response = await this.apiClient.get(resource);
+    return response.data.data;
   }
 }

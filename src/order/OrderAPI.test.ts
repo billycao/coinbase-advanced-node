@@ -1,5 +1,5 @@
 import nock from 'nock';
-import {NewOrder, OrderAPI, OrderStatus, OrderType, SelfTradePrevention} from './OrderAPI';
+import {NewOrder, OrderAPI, OrderStatus} from './OrderAPI';
 import {OrderSide} from '../payload';
 import {AxiosError} from 'axios';
 
@@ -7,7 +7,7 @@ describe('OrderAPI', () => {
   afterEach(() => nock.cleanAll());
 
   describe('placeOrder', () => {
-    it('places market buy orders', async () => {
+    it('places buy orders', async () => {
       nock(global.REST_URL)
         .post(OrderAPI.URL.ORDERS)
         .query(true)
@@ -17,73 +17,39 @@ describe('OrderAPI', () => {
           return [
             200,
             JSON.stringify({
-              created_at: '2019-04-22T20:21:20.897409Z',
-              executed_value: '0.0000000000000000',
-              fill_fees: '0.0000000000000000',
-              filled_size: '0.00000000',
-              funds: '207850.8486540300000000',
-              id: '8eba9e7b-08d6-4667-90ca-6db445d743c0',
-              post_only: false,
-              product_id: newOrder.product_id,
-              settled: false,
-              side: newOrder.side,
-              size: '0.10000000',
-              status: OrderStatus.PENDING,
-              stp: SelfTradePrevention.DECREMENT_AND_CANCEL,
-              type: newOrder.type,
+              order_configuration: {
+                market_market_ioc: {
+                  base_size: '0.001',
+                  quote_size: '10.00',
+                },
+              },
+              order_id: '089797696987-97687687-96867576576',
+              success: true,
+              success_response: {
+                client_order_id: newOrder.client_order_id,
+                order_id: '089797696987-97687687-968675765760',
+                product_id: 'BTC-USD',
+                side: 'BUY',
+              },
             }),
           ];
         });
 
       const placedOrder = await global.client.rest.order.placeOrder({
-        product_id: 'BTC-EUR',
+        client_order_id: '224242-23232-23232323',
+        order_configuration: {
+          limit_limit_gtc: {
+            base_size: '.001',
+            limit_price: '16400',
+            post_only: false,
+          },
+        },
+        product_id: 'BTC-USD',
         side: OrderSide.BUY,
-        size: '0.1',
-        type: OrderType.MARKET,
       });
 
-      expect(placedOrder.size).toBe('0.10000000');
-      expect(placedOrder.status).toBe(OrderStatus.PENDING);
-    });
-
-    it('places limit buy orders', async () => {
-      nock(global.REST_URL)
-        .post(OrderAPI.URL.ORDERS)
-        .query(true)
-        .reply((_uri, body) => {
-          const newOrder: NewOrder = typeof body === 'string' ? JSON.parse(body) : body;
-
-          return [
-            200,
-            JSON.stringify({
-              created_at: '2022-07-02T15:29:10.132Z',
-              executed_value: '0.0000000000000000',
-              fill_fees: '0.0000000000000000',
-              filled_size: '0.00000000',
-              funds: '207850.8486540300000000',
-              id: 'b0ba16c1-749c-4f96-b2e5-95192d721f92',
-              post_only: false,
-              product_id: newOrder.product_id,
-              settled: false,
-              side: newOrder.side,
-              size: '1.00000000',
-              status: OrderStatus.PENDING,
-              stp: SelfTradePrevention.DECREMENT_AND_CANCEL,
-              type: newOrder.type,
-            }),
-          ];
-        });
-
-      const placedOrder = await global.client.rest.order.placeOrder({
-        price: '18427.33',
-        product_id: 'BTC-EUR',
-        side: OrderSide.BUY,
-        size: '1',
-        type: OrderType.LIMIT,
-      });
-
-      expect(placedOrder.size).toBe('1.00000000');
-      expect(placedOrder.status).toBe(OrderStatus.PENDING);
+      expect(placedOrder.order_id).toBe('089797696987-97687687-96867576576');
+      expect(placedOrder.success).toBe(true);
     });
   });
 
@@ -95,30 +61,54 @@ describe('OrderAPI', () => {
         .reply(200, (uri: string) => {
           expect(uri).toBe('/orders');
 
-          return JSON.stringify([
-            {
-              created_at: '2019-04-22T20:21:20.897409Z',
-              executed_value: '0.0000000000000000',
-              fill_fees: '0.0000000000000000',
-              filled_size: '0.00000000',
-              funds: '207850.8486540300000000',
-              id: '8eba9e7b-08d6-4667-90ca-6db445d743c0',
-              post_only: false,
-              product_id: 'BTC-EUR',
-              settled: false,
-              side: OrderSide.BUY,
-              size: '0.10000000',
-              status: OrderStatus.OPEN,
-              stp: SelfTradePrevention.DECREMENT_AND_CANCEL,
-              type: OrderType.MARKET,
-            },
-          ]);
+          return JSON.stringify({
+            cursor: '789100',
+            has_next: true,
+            orders: [
+              {
+                average_filled_price: '50',
+                cancel_message: 'string',
+                client_order_id: '11111-000000-000000',
+                completion_percentage: '50',
+                created_time: '2021-05-31T09:59:59Z',
+                fee: 'string',
+                filled_size: '0.001',
+                filled_value: '10000',
+                number_of_fills: '2',
+                order_configuration: {
+                  limit_limit_gtc: {
+                    base_size: '0.001',
+                    limit_price: '10000.00',
+                    post_only: false,
+                  },
+                },
+                order_id: '0000-000000-000000',
+                order_type: 'UNKNOWN_ORDER_TYPE',
+                pending_cancel: true,
+                product_id: 'BTC-USD',
+                product_type: 'SPOT',
+                reject_message: 'string',
+                reject_reason: 'REJECT_REASON_UNSPECIFIED',
+                settled: 'boolean',
+                side: 'BUY',
+                size_in_quote: false,
+                size_inclusive_of_fees: false,
+                status: 'OPEN',
+                time_in_force: 'UNKNOWN_TIME_IN_FORCE',
+                total_fees: '5.00',
+                total_value_after_fees: 'string',
+                trigger_status: 'UNKNOWN_TRIGGER_STATUS',
+                user_id: '2222-000000-000000',
+              },
+            ],
+            sequence: 'string',
+          });
         });
 
       const openOrders = await global.client.rest.order.getOrders();
 
       expect(openOrders.data.length).toBe(1);
-      expect(openOrders.data[0].status).toBe(OrderStatus.OPEN);
+      expect(openOrders.data[0].side).toBe(OrderSide.BUY);
     });
 
     it('accepts a list of different order statuses', async () => {
@@ -130,26 +120,45 @@ describe('OrderAPI', () => {
 
           return JSON.stringify([
             {
-              created_at: '2019-04-22T20:21:20.897409Z',
-              executed_value: '0.0000000000000000',
-              fill_fees: '0.0000000000000000',
-              filled_size: '0.00000000',
-              funds: '207850.8486540300000000',
-              id: '8eba9e7b-08d6-4667-90ca-6db445d743c0',
-              post_only: false,
-              product_id: 'BTC-EUR',
-              settled: false,
-              side: OrderSide.BUY,
-              size: '0.10000000',
-              status: OrderStatus.OPEN,
-              stp: SelfTradePrevention.DECREMENT_AND_CANCEL,
-              type: OrderType.MARKET,
+              average_filled_price: '50',
+              cancel_message: 'string',
+              client_order_id: '11111-000000-000000',
+              completion_percentage: '50',
+              created_time: '2021-05-31T09:59:59Z',
+              fee: 'string',
+              filled_size: '0.001',
+              filled_value: '10000',
+              number_of_fills: '2',
+              order_configuration: {
+                limit_limit_gtc: {
+                  base_size: '0.001',
+                  limit_price: '10000.00',
+                  post_only: false,
+                },
+              },
+              order_id: '0000-000000-000000',
+              order_type: 'UNKNOWN_ORDER_TYPE',
+              pending_cancel: true,
+              product_id: 'BTC-USD',
+              product_type: 'SPOT',
+              reject_message: 'string',
+              reject_reason: 'REJECT_REASON_UNSPECIFIED',
+              settled: 'boolean',
+              side: 'UNKNOWN_ORDER_SIDE',
+              size_in_quote: false,
+              size_inclusive_of_fees: false,
+              status: 'OPEN',
+              time_in_force: 'UNKNOWN_TIME_IN_FORCE',
+              total_fees: '5.00',
+              total_value_after_fees: 'string',
+              trigger_status: 'UNKNOWN_TRIGGER_STATUS',
+              user_id: '2222-000000-000000',
             },
           ]);
         });
 
       const openOrders = await global.client.rest.order.getOrders({
-        status: [OrderStatus.OPEN, OrderStatus.PENDING],
+        order_status: [OrderStatus.OPEN, OrderStatus.PENDING],
       });
 
       expect(openOrders.data.length).toBe(1);
@@ -158,7 +167,7 @@ describe('OrderAPI', () => {
 
   describe('getOrder', () => {
     it('returns correct order information', async () => {
-      const orderId = '8eba9e7b-08d6-4667-90ca-6db445d743c1';
+      const orderId = '0000-000000-000000';
 
       nock(global.REST_URL)
         .get(`${OrderAPI.URL.ORDERS}/${orderId}`)
@@ -166,28 +175,44 @@ describe('OrderAPI', () => {
         .reply(
           200,
           JSON.stringify({
-            created_at: '2016-12-08T20:09:05.508883Z',
-            done_at: '2016-12-08T20:09:05.527Z',
-            done_reason: 'filled',
-            executed_value: '9.9750556620000000',
-            fill_fees: '0.0249376391550000',
-            filled_size: '0.01291771',
-            funds: '9.9750623400000000',
-            id: orderId,
-            post_only: false,
+            average_filled_price: '50',
+            cancel_message: 'string',
+            client_order_id: '11111-000000-000000',
+            completion_percentage: '50',
+            created_time: '2021-05-31T09:59:59Z',
+            fee: 'string',
+            filled_size: '0.001',
+            filled_value: '10000',
+            number_of_fills: '2',
+            order_configuration: {
+              limit_limit_gtc: {
+                base_size: '0.001',
+                limit_price: '10000.00',
+                post_only: false,
+              },
+            },
+            order_id: '0000-000000-000000',
+            order_type: 'UNKNOWN_ORDER_TYPE',
+            pending_cancel: true,
             product_id: 'BTC-USD',
-            settled: true,
-            side: OrderSide.BUY,
-            size: '1.00000000',
-            specified_funds: '10.0000000000000000',
-            status: 'done',
-            stp: SelfTradePrevention.DECREMENT_AND_CANCEL,
-            type: 'market',
+            product_type: 'SPOT',
+            reject_message: 'string',
+            reject_reason: 'REJECT_REASON_UNSPECIFIED',
+            settled: 'boolean',
+            side: 'UNKNOWN_ORDER_SIDE',
+            size_in_quote: false,
+            size_inclusive_of_fees: false,
+            status: 'OPEN',
+            time_in_force: 'UNKNOWN_TIME_IN_FORCE',
+            total_fees: '5.00',
+            total_value_after_fees: 'string',
+            trigger_status: 'UNKNOWN_TRIGGER_STATUS',
+            user_id: '2222-000000-000000',
           })
         );
 
-      const order = await global.client.rest.order.getOrder('8eba9e7b-08d6-4667-90ca-6db445d743c1');
-      expect(order!.id).toBe('8eba9e7b-08d6-4667-90ca-6db445d743c1');
+      const order = await global.client.rest.order.getOrder('0000-000000-000000');
+      expect(order?.order_id).toBe('0000-000000-000000');
     });
 
     it('returns null if an order cannot be found', async () => {
@@ -214,23 +239,20 @@ describe('OrderAPI', () => {
       nock(global.REST_URL)
         .delete(`${OrderAPI.URL.ORDERS}/8eba9e7b-08d6-4667-90ca-6db445d743c1`)
         .query(true)
-        .reply(200, '8eba9e7b-08d6-4667-90ca-6db445d743c1');
+        .reply(200, {results: [{order_id: '8eba9e7b-08d6-4667-90ca-6db445d743c1', success: true}]});
 
-      const canceledOrderId = await global.client.rest.order.cancelOrder('8eba9e7b-08d6-4667-90ca-6db445d743c1');
-      expect(canceledOrderId).toEqual('8eba9e7b-08d6-4667-90ca-6db445d743c1');
+      const o = await global.client.rest.order.cancelOrder('8eba9e7b-08d6-4667-90ca-6db445d743c1');
+      expect(o.order_id).toEqual('8eba9e7b-08d6-4667-90ca-6db445d743c1');
     });
 
     it('creates more performant requests when passing the product ID', async () => {
       nock(global.REST_URL)
         .delete(`${OrderAPI.URL.ORDERS}/8eba9e7b-08d6-4667-90ca-6db445d743c1`)
         .query(true)
-        .reply(200, '8eba9e7b-08d6-4667-90ca-6db445d743c1');
+        .reply(200, {results: [{order_id: '8eba9e7b-08d6-4667-90ca-6db445d743c1', success: true}]});
 
-      const canceledOrderId = await global.client.rest.order.cancelOrder(
-        '8eba9e7b-08d6-4667-90ca-6db445d743c1',
-        'BTC-USD'
-      );
-      expect(canceledOrderId).toEqual('8eba9e7b-08d6-4667-90ca-6db445d743c1');
+      const o = await global.client.rest.order.cancelOrder('8eba9e7b-08d6-4667-90ca-6db445d743c1');
+      expect(o.order_id).toEqual('8eba9e7b-08d6-4667-90ca-6db445d743c1');
     });
   });
 
@@ -239,21 +261,21 @@ describe('OrderAPI', () => {
       nock(global.REST_URL)
         .delete(`${OrderAPI.URL.ORDERS}`)
         .query(true)
-        .reply(200, ['8eba9e7b-08d6-4667-90ca-6db445d743c1']);
+        .reply(200, {results: [{order_id: '8eba9e7b-08d6-4667-90ca-6db445d743c1', success: true}]});
 
-      const canceledOrderIds = await global.client.rest.order.cancelOpenOrders();
+      const o = await global.client.rest.order.cancelOpenOrders();
 
-      expect(canceledOrderIds).toEqual(['8eba9e7b-08d6-4667-90ca-6db445d743c1']);
+      expect(o[0].order_id).toEqual(['8eba9e7b-08d6-4667-90ca-6db445d743c1']);
     });
 
     it('correctly deletes all open orders for just the provided productId', async () => {
       nock(global.REST_URL)
         .delete(`${OrderAPI.URL.ORDERS}?product_id=ETH-EUR`)
-        .reply(200, ['8eba9e7b-08d6-4667-90ca-6db445d743c1']);
+        .reply(200, {results: [{order_id: '8eba9e7b-08d6-4667-90ca-6db445d743c1', success: true}]});
 
-      const canceledOrderIds = await global.client.rest.order.cancelOpenOrders('ETH-EUR');
+      const canceledOrders = await global.client.rest.order.cancelOpenOrders('ETH-EUR');
 
-      expect(canceledOrderIds).toEqual(['8eba9e7b-08d6-4667-90ca-6db445d743c1']);
+      expect(canceledOrders[0].order_id).toEqual(['8eba9e7b-08d6-4667-90ca-6db445d743c1']);
     });
   });
 });

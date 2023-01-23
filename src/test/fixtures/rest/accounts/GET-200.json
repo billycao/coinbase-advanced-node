@@ -1,58 +1,87 @@
-[
-  {
-    "available": "0",
-    "balance": "0.0000000000000000",
-    "currency": "BTC",
-    "hold": "0.0000000000000000",
-    "id": "322dfa88-e10d-4678-856d-2930eac3e62d",
-    "profile_id": "09a6bf48-aaf1-4332-a299-cc2982a7a69d"
-  },
-  {
-    "available": "0",
-    "balance": "0.0000000000000000",
-    "currency": "USDC",
-    "hold": "0.0000000000000000",
-    "id": "540a5ee9-f643-4c96-8c71-11e76f5e47e9",
-    "profile_id": "09a6bf48-aaf1-4332-a299-cc2982a7a69d"
-  },
-  {
-    "available": "0",
-    "balance": "0.0000000000000000",
-    "currency": "USD",
-    "hold": "0.0000000000000000",
-    "id": "febfe5d0-a0da-48d3-a40c-558c2ba7c867",
-    "profile_id": "09a6bf48-aaf1-4332-a299-cc2982a7a69d"
-  },
-  {
-    "available": "0",
-    "balance": "0.0000000000000000",
-    "currency": "GBP",
-    "hold": "0.0000000000000000",
-    "id": "7df11882-5a15-4de9-adcc-6d23691537f9",
-    "profile_id": "09a6bf48-aaf1-4332-a299-cc2982a7a69d"
-  },
-  {
-    "available": "0",
-    "balance": "0.0000000000000000",
-    "currency": "EUR",
-    "hold": "0.0000000000000000",
-    "id": "247a6bbd-a2fc-4102-aecc-77f2d2429297",
-    "profile_id": "09a6bf48-aaf1-4332-a299-cc2982a7a69d"
-  },
-  {
-    "available": "0",
-    "balance": "0.0000000000000000",
-    "currency": "ETH",
-    "hold": "0.0000000000000000",
-    "id": "d6518493-9bee-4d27-a04f-9b8c72dbfc87",
-    "profile_id": "09a6bf48-aaf1-4332-a299-cc2982a7a69d"
-  },
-  {
-    "available": "0",
-    "balance": "0.0000000000000000",
-    "currency": "BAT",
-    "hold": "0.0000000000000000",
-    "id": "0910e755-f6c1-459a-b137-d2cef9665ac1",
-    "profile_id": "09a6bf48-aaf1-4332-a299-cc2982a7a69d"
-  }
-]
+{
+  "has_next": true,
+  "cursor": "789100",
+  "size": 100,
+  "accounts": [
+    {
+      "uuid": "80419c23-612b-5b14-9711-eb47d92601fa",
+      "name": "CVC Wallet",
+      "currency": "CVC",
+      "available_balance": {
+        "value": "11333.23",
+        "currency": "CVC"
+      },
+      "default": true,
+      "active": true,
+      "created_at": "2021-02-12T05:44:34.433Z",
+      "updated_at": "2021-02-14T23:02:39.124Z",
+      "deleted_at": null,
+      "type": "ACCOUNT_TYPE_CRYPTO",
+      "ready": false,
+      "hold": {
+        "value": "0.000",
+        "currency": "CVC"
+      }
+    },
+    {
+      "uuid": "e4123645-ca8a-58a9-a9fd-08193aa4b976",
+      "name": "ALGO Wallet",
+      "currency": "ALGO",
+      "available_balance": {
+        "value": "12232323.22",
+        "currency": "ALGO"
+      },
+      "default": true,
+      "active": true,
+      "created_at": "2021-02-11T05:52:34.152Z",
+      "updated_at": "2022-10-21T13:57:17.348Z",
+      "deleted_at": null,
+      "type": "ACCOUNT_TYPE_CRYPTO",
+      "ready": false,
+      "hold": {
+        "value": "0.000",
+        "currency": "ALGO"
+      }
+    },
+    {
+      "uuid": "bec27ff0-8bd1-5cab-af4a-2a15684d2eda",
+      "name": "Cash (USD)",
+      "currency": "USD",
+      "available_balance": {
+        "value": "2331.45",
+        "currency": "USD"
+      },
+      "default": false,
+      "active": true,
+      "created_at": "2021-02-11T05:52:31.569Z",
+      "updated_at": "2022-07-27T00:01:43.685Z",
+      "deleted_at": null,
+      "type": "ACCOUNT_TYPE_FIAT",
+      "ready": false,
+      "hold": {
+        "value": "0.000",
+        "currency": "USD"
+      }
+    },
+    {
+      "uuid": "0afbdffa-d088-5ae3-a5fa-7d6c88f7d53d",
+      "name": "BTC Wallet",
+      "currency": "BTC",
+      "available_balance": {
+        "value": "0.29",
+        "currency": "BTC"
+      },
+      "default": true,
+      "active": true,
+      "created_at": "2021-02-11T05:47:41.592Z",
+      "updated_at": "2021-02-23T04:44:17.220Z",
+      "deleted_at": null,
+      "type": "ACCOUNT_TYPE_CRYPTO",
+      "ready": false,
+      "hold": {
+        "value": "0.000",
+        "currency": "BTC"
+      }
+    }
+  ]
+}

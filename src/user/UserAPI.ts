@@ -1,47 +1,54 @@
 import {AxiosInstance} from 'axios';
 
 export interface VerifiedUser {
+  avatar_url: string;
   id: string;
+  name: string;
+  profile_bio: unknown;
+  profile_location: unknown;
+  profile_url: string;
+  resource: string;
+  resource_path: string;
+  username: string;
 }
 
-export interface TrailingVolume {
-  exchange_volume: string;
-  product_id: string;
-  recorded_at: string;
-  volume: string;
+export interface UserAuthorizationInfo {
+  method: string;
+  oauth_meta?: any;
+  scopes: string[];
 }
 
 export class UserAPI {
   static readonly URL: {USERS: string} = {
-    USERS: `/users`,
+    USERS: `/user`,
   };
 
   constructor(private readonly apiClient: AxiosInstance) {}
 
   /**
-   * Verify your authentication with Coinbase Pro.
+   * Get current user's public information. To get user's email or private information, use permissions wallet:user:email and wallet:user:read.
+   *  If current request has a wallet:transactions:send scope, then the response will contain a boolean sends_disabled field that indicates if the user's send functionality has been disabled.
    *
-   * @returns Your account
-   * @see https://docs.cloud.coinbase.com/exchange/docs/websocket-overview#authentication
+   * @param id - if no id is provided we are fetching user associated to current auth creds
+   * @see https://docs.cloud.coinbase.com/sign-in-with-coinbase/docs/api-users#show-current-user
    */
-  async verifyAuthentication(): Promise<VerifiedUser> {
-    const resource = `${UserAPI.URL.USERS}/self/verify`;
-    const response = await this.apiClient.get<VerifiedUser>(resource);
-    return response.data;
+  async fetchUserInfo(id?: string): Promise<VerifiedUser> {
+    let resource = `${UserAPI.URL.USERS}`;
+    if (id) {
+      resource += `/${id}`;
+    }
+    const response = await this.apiClient.get<any>(resource);
+    return response.data.data;
   }
 
   /**
-   * This request will return your 30-day trailing volume for all products of the API key’s profile. This is a cached
-   * value that’s calculated every day at midnight UTC.
+   * Get current user's authorization information including granted scopes and send limits when using OAuth2 authentication.
    *
-   * @note This endpoint requires either the “view” or “trade” permission
-   * @returns Your 30-day trailing volume for all products of the API key’s profile
-   * @see https://docs.cloud.coinbase.com/exchange/reference/exchangerestapi_getfees
-   * @deprecated The Trailing Volume endpoint has been deprecated in favor of the Fees endpoint to get the latest volumes: https://docs.cloud.coinbase.com/exchange/docs/changelog#2021-feb-04
+   * @see https://docs.cloud.coinbase.com/sign-in-with-coinbase/docs/api-users#show-authorization-information
    */
-  async getTrailingVolume(): Promise<TrailingVolume[]> {
-    const resource = `${UserAPI.URL.USERS}/self/trailing-volume`;
-    const response = await this.apiClient.get<TrailingVolume[]>(resource);
-    return response.data;
+  async fetchAuthorizationInfo(): Promise<UserAuthorizationInfo> {
+    const resource = `${UserAPI.URL.USERS}/auth`;
+    const response = await this.apiClient.get<any>(resource);
+    return response.data.data;
   }
 }

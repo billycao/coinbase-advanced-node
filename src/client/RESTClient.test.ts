@@ -6,12 +6,12 @@ import {RESTClient} from './RESTClient';
 
 describe('RESTClient', () => {
   function createRESTClient(): RESTClient {
-    return new RESTClient(global.REST_URL, () => {
+    return new RESTClient(global.clientConnection, () => {
       return Promise.resolve({
         key: '',
         passphrase: '',
         signature: '',
-        timestamp: Date.now() / 1000,
+        timestamp: Math.floor(Date.now() / 1000),
       });
     });
   }
