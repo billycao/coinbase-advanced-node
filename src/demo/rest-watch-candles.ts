@@ -30,7 +30,7 @@ async function main(): Promise<void> {
   };
   const candles = await client.rest.product.getCandles(productId, base);
   const latestCandle = candles[candles.length - 1];
-  const latestOpen = latestCandle.openTimeInISO;
+  const latestOpen = latestCandle?.openTimeInISO;
   console.info(
     'Initial candle',
     productId,

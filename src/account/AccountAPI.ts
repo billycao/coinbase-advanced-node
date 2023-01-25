@@ -121,12 +121,13 @@ export class AccountAPI {
       pagination = formatPaginationIntoParams(pagination);
     }
     const response = await this.apiClient.get(resource, {params: {limit: 250, ...pagination}});
-    const position = response.data.cursor && response.data.cursor !== '' ? response.data.cursor : response.data.length;
+    const position =
+      response.data.cursor && response.data.cursor !== '' ? response.data.cursor : response.data.accounts.length;
     return {
       data: response.data.accounts,
       pagination: {
-        after: (position - response.data.length).toString(),
-        before: position,
+        after: (Number(position) - response.data.accounts.length).toString(),
+        before: position.toString(),
         has_next: response.data.has_next || false,
       },
     };

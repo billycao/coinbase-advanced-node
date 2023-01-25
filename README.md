@@ -38,14 +38,14 @@ yarn add coinbase-advanced-node
 
 ```javascript
 const {Coinbase} = require('coinbase-advanced-node');
-const client = new Coinbase();
+const client = new Coinbase(creds);
 ```
 
 **TypeScript**
 
 ```typescript
 import {Coinbase} from 'coinbase-advanced-node';
-const client = new Coinbase();
+const client = new Coinbase(creds);
 ```
 
 ## Usage
@@ -85,12 +85,12 @@ const client = new Coinbase(auth);
 const oauthClient = new Coinbase(oauth);
 
 client.rest.account.listAccounts().then(accounts => {
-  const message = `Advance Trade accounts "${accounts.length}".`;
+  const message = `Advance Trade accounts "${accounts.data.length}".`;
   console.log(message);
 });
 
 oauthClient.rest.account.listCoinbaseAccounts().then(accounts => {
-  const message = `Coinbase accounts "${accounts.length}".`;
+  const message = `Coinbase accounts "${accounts.data.length}".`;
   console.log(message);
 });
 ```
@@ -102,7 +102,7 @@ OAuth2 authentication requires two factor authentication when debiting funds wit
 ```typescript
 // Example
 const client = new Coinbase(creds);
-client.rest.transaction.sendTransaction(accountID, info).catch(err => {
+client.rest.transaction.sendTransaction(accountID, info).catch(async err => {
   if (err.status == 402) {
     const token = await promptUserForMFA();
     const configID = client.rest.interceptors.request.use(config => {
