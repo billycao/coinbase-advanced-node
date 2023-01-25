@@ -218,15 +218,24 @@ export class OrderAPI {
    * @see https://docs.cloud.coinbase.com/advanced-trade-api/reference/retailbrokerageapi_gethistoricalorders
    */
   async getOrders(query?: OrderListQueryParam): Promise<PaginatedData<Order>> {
-    const resource = OrderAPI.URL.ORDERS + '/brokerage/orders/historical/batch';
+    const resource = OrderAPI.URL.ORDERS + '/historical/batch';
+    if (!query) {
+      query = {};
+    }
+    if (!query?.limit) {
+      query.limit = 25;
+    }
     const response = await this.apiClient.get(`${resource}`, {
       params: query,
     });
+    const position =
+      response.data.cursor && response.data.cursor !== '' ? response.data.cursor : response.data.orders.length;
     return {
-      data: response.data,
+      data: response.data.orders,
       pagination: {
-        after: '0',
-        before: response.data.cursor,
+        after: (Number(position) - response.data.orders.length).toString(),
+        before: position.toString(),
+        has_next: response.data.has_next || false,
       },
     };
   }
