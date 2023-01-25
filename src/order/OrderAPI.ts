@@ -249,8 +249,9 @@ export class OrderAPI {
   async getOrder(orderId: string): Promise<Order | null> {
     const resource = `${OrderAPI.URL.ORDERS}/historical/${orderId}`;
     try {
-      const response = await this.apiClient.get<Order>(resource);
-      return response.data;
+      const response = await this.apiClient.get(resource);
+      const order = response?.data?.order || response?.data?.data || response.data;
+      return order;
     } catch (error) {
       /**
        * If the order is canceled the response may

@@ -96,11 +96,12 @@ export class FillAPI {
   async getFills(query: FillApiQueryParams): Promise<PaginatedData<Fill>> {
     const resource = FillAPI.URL.FILLS;
     const response = await this.apiClient.get(resource, {params: query});
-    const position = response.data.cursor && response.data.cursor !== '' ? response.data.cursor : response.data.length;
+    const position =
+      response.data.cursor && response.data.cursor !== '' ? response.data.cursor : response.data.fills.length;
     return {
       data: response.data.fills,
       pagination: {
-        after: (position - response.data.length).toString(),
+        after: (Number(position) - response.data.fills.length).toString(),
         before: position,
         has_next: response.data.has_next || false,
       },
