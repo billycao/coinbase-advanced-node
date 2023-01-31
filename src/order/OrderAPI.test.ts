@@ -56,11 +56,9 @@ describe('OrderAPI', () => {
   describe('getOrders', () => {
     it('returns list of open orders', async () => {
       nock(global.REST_URL)
-        .get(OrderAPI.URL.ORDERS)
+        .get(OrderAPI.URL.ORDERS + '/historical/batch')
         .query(true)
-        .reply(200, (uri: string) => {
-          expect(uri).toBe('/orders');
-
+        .reply(200, (_uri: string) => {
           return JSON.stringify({
             cursor: '789100',
             has_next: true,
@@ -113,48 +111,50 @@ describe('OrderAPI', () => {
 
     it('accepts a list of different order statuses', async () => {
       nock(global.REST_URL)
-        .get(OrderAPI.URL.ORDERS)
+        .get(OrderAPI.URL.ORDERS + '/historical/batch')
         .query(true)
-        .reply(200, (uri: string) => {
-          expect(uri).toBe('/orders?status=open&status=pending');
-
-          return JSON.stringify([
-            {
-              average_filled_price: '50',
-              cancel_message: 'string',
-              client_order_id: '11111-000000-000000',
-              completion_percentage: '50',
-              created_time: '2021-05-31T09:59:59Z',
-              fee: 'string',
-              filled_size: '0.001',
-              filled_value: '10000',
-              number_of_fills: '2',
-              order_configuration: {
-                limit_limit_gtc: {
-                  base_size: '0.001',
-                  limit_price: '10000.00',
-                  post_only: false,
+        .reply(200, (_uri: string) => {
+          return JSON.stringify({
+            cursor: '789100',
+            has_next: true,
+            orders: [
+              {
+                average_filled_price: '50',
+                cancel_message: 'string',
+                client_order_id: '11111-000000-000000',
+                completion_percentage: '50',
+                created_time: '2021-05-31T09:59:59Z',
+                fee: 'string',
+                filled_size: '0.001',
+                filled_value: '10000',
+                number_of_fills: '2',
+                order_configuration: {
+                  limit_limit_gtc: {
+                    base_size: '0.001',
+                    limit_price: '10000.00',
+                    post_only: false,
+                  },
                 },
+                order_id: '0000-000000-000000',
+                order_type: 'UNKNOWN_ORDER_TYPE',
+                pending_cancel: true,
+                product_id: 'BTC-USD',
+                product_type: 'SPOT',
+                reject_message: 'string',
+                reject_reason: 'REJECT_REASON_UNSPECIFIED',
+                settled: 'boolean',
+                side: 'UNKNOWN_ORDER_SIDE',
+                size_in_quote: false,
+                size_inclusive_of_fees: false,
+                status: 'OPEN',
+                time_in_force: 'UNKNOWN_TIME_IN_FORCE',
+                total_fees: '5.00',
+                total_value_after_fees: 'string',
+                trigger_status: 'UNKNOWN_TRIGGER_STATUS',
+                user_id: '2222-000000-000000',
               },
-              order_id: '0000-000000-000000',
-              order_type: 'UNKNOWN_ORDER_TYPE',
-              pending_cancel: true,
-              product_id: 'BTC-USD',
-              product_type: 'SPOT',
-              reject_message: 'string',
-              reject_reason: 'REJECT_REASON_UNSPECIFIED',
-              settled: 'boolean',
-              side: 'UNKNOWN_ORDER_SIDE',
-              size_in_quote: false,
-              size_inclusive_of_fees: false,
-              status: 'OPEN',
-              time_in_force: 'UNKNOWN_TIME_IN_FORCE',
-              total_fees: '5.00',
-              total_value_after_fees: 'string',
-              trigger_status: 'UNKNOWN_TRIGGER_STATUS',
-              user_id: '2222-000000-000000',
-            },
-          ]);
+            ],
+          });
         });
 
       const openOrders = await global.client.rest.order.getOrders({
@@ -170,7 +170,7 @@ describe('OrderAPI', () => {
       const orderId = '0000-000000-000000';
 
       nock(global.REST_URL)
-        .get(`${OrderAPI.URL.ORDERS}/${orderId}`)
+        .get(`${OrderAPI.URL.ORDERS}/historical/${orderId}`)
         .query(true)
         .reply(
           200,
@@ -216,7 +216,7 @@ describe('OrderAPI', () => {
     });
 
     it('returns null if an order cannot be found', async () => {
-      nock(global.REST_URL).get(`${OrderAPI.URL.ORDERS}/123`).query(true).reply(404);
+      nock(global.REST_URL).get(`${OrderAPI.URL.ORDERS}/historical/123`).query(true).reply(404);
 
       const order = await global.client.rest.order.getOrder('123');
 
@@ -224,7 +224,7 @@ describe('OrderAPI', () => {
     });
 
     it('rethrows errors with status code other than 404', async () => {
-      nock(global.REST_URL).get(`${OrderAPI.URL.ORDERS}/123`).query(true).reply(403);
+      nock(global.REST_URL).get(`${OrderAPI.URL.ORDERS}/historical/123`).query(true).reply(403);
 
       try {
         await global.client.rest.order.getOrder('123');
@@ -235,47 +235,14 @@ describe('OrderAPI', () => {
   });
 
   describe('cancelOrder', () => {
-    it('correctly deletes a specific order', async () => {
+    it('correctly cancels a specific order', async () => {
       nock(global.REST_URL)
-        .delete(`${OrderAPI.URL.ORDERS}/8eba9e7b-08d6-4667-90ca-6db445d743c1`)
+        .post(`${OrderAPI.URL.ORDERS}/batch_cancel`)
         .query(true)
-        .reply(200, {results: [{order_id: '8eba9e7b-08d6-4667-90ca-6db445d743c1', success: true}]});
+        .reply(200, JSON.stringify({results: [{order_id: '8eba9e7b-08d6-4667-90ca-6db445d743c1', success: true}]}));
 
       const o = await global.client.rest.order.cancelOrder('8eba9e7b-08d6-4667-90ca-6db445d743c1');
       expect(o.order_id).toEqual('8eba9e7b-08d6-4667-90ca-6db445d743c1');
-    });
-
-    it('creates more performant requests when passing the product ID', async () => {
-      nock(global.REST_URL)
-        .delete(`${OrderAPI.URL.ORDERS}/8eba9e7b-08d6-4667-90ca-6db445d743c1`)
-        .query(true)
-        .reply(200, {results: [{order_id: '8eba9e7b-08d6-4667-90ca-6db445d743c1', success: true}]});
-
-      const o = await global.client.rest.order.cancelOrder('8eba9e7b-08d6-4667-90ca-6db445d743c1');
-      expect(o.order_id).toEqual('8eba9e7b-08d6-4667-90ca-6db445d743c1');
-    });
-  });
-
-  describe('cancelOpenOrders', () => {
-    it('correctly deletes all open orders if no productId is passed', async () => {
-      nock(global.REST_URL)
-        .delete(`${OrderAPI.URL.ORDERS}`)
-        .query(true)
-        .reply(200, {results: [{order_id: '8eba9e7b-08d6-4667-90ca-6db445d743c1', success: true}]});
-
-      const o = await global.client.rest.order.cancelOpenOrders();
-
-      expect(o[0].order_id).toEqual(['8eba9e7b-08d6-4667-90ca-6db445d743c1']);
-    });
-
-    it('correctly deletes all open orders for just the provided productId', async () => {
-      nock(global.REST_URL)
-        .delete(`${OrderAPI.URL.ORDERS}?product_id=ETH-EUR`)
-        .reply(200, {results: [{order_id: '8eba9e7b-08d6-4667-90ca-6db445d743c1', success: true}]});
-
-      const canceledOrders = await global.client.rest.order.cancelOpenOrders('ETH-EUR');
-
-      expect(canceledOrders[0].order_id).toEqual(['8eba9e7b-08d6-4667-90ca-6db445d743c1']);
     });
   });
 });

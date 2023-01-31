@@ -27,7 +27,7 @@ export class SharedRequestService {
     const resource = customPath || `/accounts/${account}/${this.operation}`;
     let params = {};
     if (pagination) {
-      params = formatPaginationIntoParams(params);
+      params = formatPaginationIntoParams(params, true);
     }
     const response = await this.apiClient.get(resource, {
       params,
@@ -35,8 +35,8 @@ export class SharedRequestService {
     return {
       data: response.data.data,
       pagination: {
-        after: response.data.pagination.starting_after,
-        before: response.data.pagination.ending_before,
+        after: response.data.pagination.starting_after || '0',
+        before: response.data.pagination.ending_before || '0',
         has_next: response.data.has_next || false,
       },
     };

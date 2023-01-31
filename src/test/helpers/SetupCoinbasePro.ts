@@ -6,32 +6,36 @@ declare global {
   /* eslint-disable no-var */
   var client: Coinbase;
   var REST_URL: string;
+  var SIWC_REST_URL: string;
   var clientConnection: ClientConnection;
   /* eslint-enable no-var */
 }
 
 // URL to mock a server using "nock":
 global.REST_URL = Coinbase.SETUP.PRODUCTION.REST_ADV_TRADE;
+global.SIWC_REST_URL = Coinbase.SETUP.PRODUCTION.REST_SIWC;
 global.clientConnection = Coinbase.SETUP.PRODUCTION;
 
 beforeEach(() => {
-  nock(global.REST_URL)
+  nock(global.SIWC_REST_URL)
     .persist()
     .get(TimeAPI.URL.TIME)
     .query(true)
     .reply(() => {
-      const now = new Date();
+      const date = new Date();
       return [
         200,
         JSON.stringify({
-          epoch: now.getTime() / 1000,
-          iso: now.toISOString(),
+          data: {
+            epoch: date.getTime() / 1000,
+            iso: date.toISOString(),
+          },
         }),
       ];
     });
 
   global.client = new Coinbase({
-    apiKey: '',
-    apiSecret: '',
+    apiKey: 'xxxxx',
+    apiSecret: 'xxxxx',
   });
 });

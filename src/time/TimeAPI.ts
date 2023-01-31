@@ -16,7 +16,7 @@ export class TimeAPI {
 
   /**
    * Get the server time from Coinbase Pro API. It has been reported that sometimes the return value is a string:
-   * https://github.com/bennycode/coinbase-advanced-node/issues/354
+   * https://github.com/bennycode/coinbase-pro-node/issues/354
    *
    * @see https://docs.cloud.coinbase.com/sign-in-with-coinbase/docs/api-time
    */
@@ -32,23 +32,7 @@ export class TimeAPI {
       };
       return config;
     });
-    const response = await client.get<any>(`${this.baseURL}${TimeAPI.URL.TIME}`, {
-      // This trick forces axios to set JSON headers
-      // data: {},
-      // headers: {
-      //   'Content-Type': 'application/json',
-      //   'Accept': 'application/json',
-      // },
-      // responseType: 'text',
-      // transformResponse: undefined
-      // responseType: 'text',
-    });
-    // const buffer =  Buffer.from(response.data, 'binary');
-    // // const textdata = buffer.toString(); // for string
-    // // console.log(textdata);
-    // const jsondata = buffer.toJSON(); // for json
-    // console.log(jsondata);
-    // console.log('what is this ', Buffer.from(response.data.toJSON().data).toString('utf8'));
+    const response = await client.get<any>(`${this.baseURL}${TimeAPI.URL.TIME}`, {});
     return response.data.data;
   }
 
@@ -57,6 +41,6 @@ export class TimeAPI {
    */
   getClockSkew(time: TimeSkew): number {
     const now = Math.floor(Date.now() / 1000);
-    return time.epoch - now;
+    return time?.epoch - now;
   }
 }

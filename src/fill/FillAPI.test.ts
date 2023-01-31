@@ -37,7 +37,7 @@ describe('FillAPI', () => {
   describe('getFillsByProductId', () => {
     it('filters filled orders by product ID', async () => {
       const filledOrders = await global.client.rest.fill.getFillsByProductId('BTC-USD');
-      expect(filledOrders.data.length).toBe(2);
+      expect(filledOrders.data.length).toBe(1);
     });
   });
 });

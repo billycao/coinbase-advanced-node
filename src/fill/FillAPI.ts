@@ -102,7 +102,7 @@ export class FillAPI {
       data: response.data.fills,
       pagination: {
         after: (Number(position) - response.data.fills.length).toString(),
-        before: position,
+        before: position.toString(),
         has_next: response.data.has_next || false,
       },
     };

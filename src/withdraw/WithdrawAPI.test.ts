@@ -42,7 +42,7 @@ describe('WithdrawAPI', () => {
 
   describe('getPaymentMethods', () => {
     it('gets a list of your payment methods', async () => {
-      nock(global.REST_URL)
+      nock(global.SIWC_REST_URL)
         .persist()
         .get(WithdrawAPI.URL.LIST_PAYMENT_METHODS)
         .reply(
@@ -134,7 +134,7 @@ describe('WithdrawAPI', () => {
 
   describe('withdrawToPaymentMethod', () => {
     beforeAll(() => {
-      nock(global.REST_URL)
+      nock(global.SIWC_REST_URL)
         .persist()
         .post(`${SharedRequestService.BASE_URL}/83562370-3e5c-51db-87da-752af5ab9559/${WithdrawAPI.SHARED_REF}`)
         .reply(200, JSON.stringify({data: mockWithdrawal}));
@@ -144,8 +144,8 @@ describe('WithdrawAPI', () => {
       const w = await client.rest.withdraw.withdrawToPaymentMethod(
         '100.00',
         'USD',
-        '83562370-3e5c-51db-87da-752af5ab9559',
-        '2bbf394c-193b-5b2a-9155-3b4732659ede'
+        '2bbf394c-193b-5b2a-9155-3b4732659ede',
+        '83562370-3e5c-51db-87da-752af5ab9559'
       );
       expect(w.payout_at).toBe('2015-02-18T16:54:00-08:00');
     });
@@ -153,7 +153,7 @@ describe('WithdrawAPI', () => {
 
   describe('getWithdrawal', () => {
     beforeAll(() => {
-      nock(global.REST_URL)
+      nock(global.SIWC_REST_URL)
         .persist()
         .get(
           `${SharedRequestService.BASE_URL}/83562370-3e5c-51db-87da-752af5ab9559/${WithdrawAPI.SHARED_REF}/67e0eaec-07d7-54c4-a72c-2e92826897df`
@@ -172,10 +172,10 @@ describe('WithdrawAPI', () => {
 
   describe('commitWithdrawal', () => {
     beforeAll(() => {
-      nock(global.REST_URL)
+      nock(global.SIWC_REST_URL)
         .persist()
         .post(
-          `${SharedRequestService.BASE_URL}/83562370-3e5c-51db-87da-752af5ab9559/${WithdrawAPI.SHARED_REF}/67e0eaec-07d7-54c4-a72c-2e92826897df`
+          `${SharedRequestService.BASE_URL}/83562370-3e5c-51db-87da-752af5ab9559/${WithdrawAPI.SHARED_REF}/67e0eaec-07d7-54c4-a72c-2e92826897df/commit`
         )
         .reply(200, JSON.stringify({data: mockWithdrawal}));
     });
@@ -191,7 +191,7 @@ describe('WithdrawAPI', () => {
 
   describe('listWithdrawals', () => {
     beforeAll(() => {
-      nock(global.REST_URL)
+      nock(global.SIWC_REST_URL)
         .persist()
         .get(`${SharedRequestService.BASE_URL}/83562370-3e5c-51db-87da-752af5ab9559/${WithdrawAPI.SHARED_REF}`)
         .reply(

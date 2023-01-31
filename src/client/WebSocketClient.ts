@@ -1,7 +1,7 @@
 import {EventEmitter} from 'events';
 import ReconnectingWebSocket, {Event, ErrorEvent, Options, CloseEvent} from 'reconnecting-websocket';
 import WebSocket from 'ws';
-import {ISO_8601_MS_UTC, OrderSide, RESTClient} from '..';
+import {ISO_8601_MS_UTC, OrderSide, OrderStatus, OrderType, RESTClient} from '..';
 import {RequestSetup, SignedRequest} from '../auth/RequestSigner';
 
 export interface WebSocketChannel {
@@ -20,8 +20,7 @@ export enum WebSocketChannelName {
   TICKER_1000 = 'ticker_batch',
   /** A special version of the ticker channel that only provides a ticker update about every 5 seconds. */
   TICKER_BATCH = 'ticker_batch',
-  /** This channel is a version of the full channel that only contains messages that include the authenticated user. Consequently, you need to be authenticated to receive any messages. */
-  /** This connection accepts multiple product IDs in a product_ids array. If none are provided, the websocket subscription is open to all product IDs.  */
+  /** The user channel sends updates on all of a user's open orders, including all subsequent updates of those orders. */
   USER = 'user',
 }
 
@@ -50,6 +49,8 @@ export enum WebSocketResponseType {
   SUBSCRIPTIONS = 'subscriptions',
   /** The ticker channel provides real-time price updates every time a match happens. */
   TICKER = 'ticker',
+  /** The user channel sends updates on all of a user's open orders, including all subsequent updates of those orders. */
+  USER = 'user',
 }
 
 export type WebSocketResponse = WebSocketMessage & {type: WebSocketResponseType};
@@ -60,6 +61,7 @@ type WebSocketMessage =
   | WebSocketStatusMessage
   | WebSocketTickerMessage
   | WebSocketErrorMessage
+  | WebsocketUserMessage
   | WebsocketMarketTradesMessage;
 
 export interface WebSocketErrorMessage {
@@ -87,13 +89,15 @@ export interface WebSocketStatusMessage {
 }
 
 export interface WebSocketTickerMessage {
-  high_24h: string;
-  low_24h: string;
+  high_24_h: string;
+  high_52_w: string;
+  low_24_h: string;
+  low_52_w: string;
   price: string;
+  price_percent_chg_24_h: string;
   product_id: string;
-  sequence: number;
   type: WebSocketResponseType.TICKER;
-  volume_24h: string;
+  volume_24_h: string;
 }
 
 export interface WebsocketMarketTrade {
@@ -132,6 +136,25 @@ export interface WebsocketMarketTradesMessage {
   type: WebSocketResponseType.MARKET_TRADES;
 }
 
+export interface WebsocketUserOrder {
+  avg_price: string;
+  client_order_id: string;
+  creation_time: ISO_8601_MS_UTC;
+  cumulative_quantity: string;
+  leaves_quantity: string;
+  order_id: string;
+  order_side: OrderSide;
+  order_type: OrderType;
+  product_id: string;
+  status: OrderStatus;
+  total_fees: string;
+}
+
+export interface WebsocketUserMessage {
+  type: WebSocketResponseType.USER;
+  updates: WebsocketUserOrder[];
+}
+
 export enum WebSocketEvent {
   ON_CLOSE = 'WebSocketEvent.ON_CLOSE',
   ON_ERROR = 'WebSocketEvent.ON_ERROR',
@@ -144,6 +167,7 @@ export enum WebSocketEvent {
   ON_MESSAGE_TICKER = 'WebSocketEvent.ON_MESSAGE_TICKER',
   ON_OPEN = 'WebSocketEvent.ON_OPEN',
   ON_SUBSCRIPTION_UPDATE = 'WebSocketEvent.ON_SUBSCRIPTION_UPDATE',
+  ON_USER_UPDATE = 'WebSocketEvent.ON_USER_UPDATE',
 }
 
 export interface WebSocketClient {
@@ -166,6 +190,8 @@ export interface WebSocketClient {
   on(event: WebSocketEvent.ON_MESSAGE_L2UPDATE, listener: (l2update: WebSocketL2Message) => void): this;
 
   on(event: WebSocketEvent.ON_MESSAGE_MARKET_TRADES, listener: (marketTrades: WebsocketMarketTrade) => void): this;
+
+  on(event: WebSocketEvent.ON_USER_UPDATE, listener: (userMessage: WebsocketUserMessage) => void): this;
 
   on(event: WebSocketEvent.ON_OPEN, listener: (event: Event) => void): this;
 }
@@ -235,6 +261,7 @@ export class WebSocketClient extends EventEmitter {
       }
 
       if (response.tickers) {
+        response = response.tickers[0];
         response.type = WebSocketResponseType.TICKER;
       }
 
@@ -246,22 +273,23 @@ export class WebSocketClient extends EventEmitter {
         response.type = WebSocketResponseType.SUBSCRIPTIONS;
       }
 
-      if (response.type === 'snapshot' && response.trades) {
+      if (response.trades) {
         response.type = WebSocketResponseType.MARKET_TRADES;
       }
 
-      if (response.product_id && response.updates) {
-        response.type = response.type?.includes('update')
+      if (response.product_id && response.updates && response.type) {
+        response.type = response?.type?.toLowerCase().includes('update')
           ? WebSocketResponseType.LEVEL2_UPDATE
           : WebSocketResponseType.LEVEL2_SNAPSHOT;
+      }
+
+      if (!response.product_id && response.updates) {
+        response.type = WebSocketResponseType.USER;
       }
 
       // Emit generic event
       this.emit(WebSocketEvent.ON_MESSAGE, response);
 
-      // console.log('response type is now ', response.type);
-
-      // console.log('what is response type: ', response.type);
       // Emit specific event
       switch (response.type) {
         case WebSocketResponseType.ERROR:
@@ -274,7 +302,7 @@ export class WebSocketClient extends EventEmitter {
           this.emit(WebSocketEvent.ON_SUBSCRIPTION_UPDATE, response);
           break;
         case WebSocketResponseType.TICKER:
-          this.emit(WebSocketEvent.ON_MESSAGE_TICKER, response.tickers[0]);
+          this.emit(WebSocketEvent.ON_MESSAGE_TICKER, response);
           break;
         case WebSocketResponseType.LEVEL2_SNAPSHOT:
           this.emit(WebSocketEvent.ON_MESSAGE_L2SNAPSHOT, response);
@@ -284,6 +312,9 @@ export class WebSocketClient extends EventEmitter {
           break;
         case WebSocketResponseType.MARKET_TRADES:
           this.emit(WebSocketEvent.ON_MESSAGE_MARKET_TRADES, response);
+          break;
+        case WebSocketResponseType.USER:
+          this.emit(WebSocketEvent.ON_USER_UPDATE, response);
           break;
       }
     };
@@ -346,10 +377,15 @@ export class WebSocketClient extends EventEmitter {
 
     // TODO: figure out how to do oauth on websockets
     (signature as any).timestamp = signature.timestamp.toString();
-    Object.assign(signature, {
-      api_key: signature?.key?.toString(), // i really don't like that REST needs int and WS needs string
-    });
-    delete (signature as any).key;
+    if (signature?.key) {
+      Object.assign(signature, {
+        api_key: signature.key.toString(), // i really don't like that REST needs int and WS needs string
+      });
+      delete (signature as any).key;
+      if (signature.oauth) {
+        delete (signature as any).signature;
+      }
+    }
     Object.assign(message, signature);
 
     if (!this.socket) {

@@ -1,4 +1,5 @@
 import nock from 'nock';
+import {FeeAPI} from './FeeAPI';
 
 describe('FeeAPI', () => {
   describe('getCurrentFees', () => {
@@ -25,7 +26,7 @@ describe('FeeAPI', () => {
         total_fees: 25,
         total_volume: 1000,
       };
-      nock(global.REST_URL).get('/fees').reply(200, response);
+      nock(global.REST_URL).get(FeeAPI.URL.FEES).reply(200, response);
       const fees = await global.client.rest.fee.getCurrentFees();
       expect(fees.fee_tier.maker_fee_rate).toBe('0.0020');
     });

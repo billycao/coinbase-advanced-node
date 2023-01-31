@@ -39,13 +39,13 @@ describe('AddressAPI', () => {
   afterAll(() => nock.cleanAll());
 
   beforeAll(() => {
-    nock(global.REST_URL)
+    nock(global.SIWC_REST_URL)
       .persist()
       .get(`${SharedRequestService.BASE_URL}/2bbf394c-193b-5b2a-9155-3b4732659ede/${AddressAPI.SHARED_REF}`)
       .query(true)
       .reply(200, JSON.stringify(addressPayload));
 
-    nock(global.REST_URL)
+    nock(global.SIWC_REST_URL)
       .persist()
       .get(
         `${SharedRequestService.BASE_URL}/2bbf394c-193b-5b2a-9155-3b4732659ede/${AddressAPI.SHARED_REF}/dd3183eb-af1d-5f5d-a90d-cbff946435ff`
@@ -53,7 +53,7 @@ describe('AddressAPI', () => {
       .query(true)
       .reply(200, JSON.stringify({data: addressPayload.data[0]}));
 
-    nock(global.REST_URL)
+    nock(global.SIWC_REST_URL)
       .persist()
       .get(
         `${SharedRequestService.BASE_URL}/2bbf394c-193b-5b2a-9155-3b4732659ede/${AddressAPI.SHARED_REF}/dd3183eb-af1d-5f5d-a90d-cbff946435ff/transactions`
@@ -102,22 +102,24 @@ describe('AddressAPI', () => {
         })
       );
 
-    nock(global.REST_URL)
+    nock(global.SIWC_REST_URL)
       .persist()
       .post(`${SharedRequestService.BASE_URL}/2bbf394c-193b-5b2a-9155-3b4732659ede/${AddressAPI.SHARED_REF}`)
       .query(true)
       .reply(
         200,
         JSON.stringify({
-          address: 'mgSvu1z1amUFAPkB4cUg8ujaDxKAfZBt5Q',
-          created_at: '2015-03-31T17:23:52-07:00',
-          id: 'ac5c5f15-0b1d-54f5-8912-fecbf66c2a64',
-          name: 'A nice name',
-          network: 'bitcoin',
-          resource: 'address',
-          resource_path:
-            '/v2/accounts/2bbf394c-193b-5b2a-9155-3b4732659ede/addresses/ac5c5f15-0b1d-54f5-8912-fecbf66c2a64',
-          updated_at: '2015-01-31T20:49:02Z',
+          data: {
+            address: 'mgSvu1z1amUFAPkB4cUg8ujaDxKAfZBt5Q',
+            created_at: '2015-03-31T17:23:52-07:00',
+            id: 'ac5c5f15-0b1d-54f5-8912-fecbf66c2a64',
+            name: 'A nice name',
+            network: 'bitcoin',
+            resource: 'address',
+            resource_path:
+              '/v2/accounts/2bbf394c-193b-5b2a-9155-3b4732659ede/addresses/ac5c5f15-0b1d-54f5-8912-fecbf66c2a64',
+            updated_at: '2015-01-31T20:49:02Z',
+          },
         })
       );
   });
@@ -145,7 +147,7 @@ describe('AddressAPI', () => {
         '2bbf394c-193b-5b2a-9155-3b4732659ede',
         'dd3183eb-af1d-5f5d-a90d-cbff946435ff'
       );
-      expect(t.data).toBeGreaterThan(0);
+      expect(t.data).toBeInstanceOf(Array);
     });
   });
 

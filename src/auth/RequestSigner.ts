@@ -11,6 +11,7 @@ export interface RequestSetup {
 
 export interface SignedRequest {
   key: string | null;
+  oauth: boolean;
   signature: string;
   timestamp: number;
 }
@@ -18,14 +19,15 @@ export interface SignedRequest {
 export class RequestSigner {
   // https://docs.cloud.coinbase.com/exchange/docs/authorization-and-authentication#creating-a-request
   static signRequest(auth: ClientAuthentication, setup: RequestSetup, clockSkew: number): SignedRequest {
-    const timestamp = Math.floor(Date.now() / 1000) + clockSkew;
+    const timestamp = Math.floor(Date.now() / 1000 + clockSkew);
     const what = `${timestamp}${setup.httpMethod.toUpperCase()}${setup.requestPath}${setup.payload}`;
     const sig = crypto.createHmac('sha256', auth.apiSecret).update(what);
     const signature = sig.digest('hex');
 
     return {
-      key: auth.oauthToken ? null : auth.apiKey,
-      signature: auth.oauthToken || signature,
+      key: auth.oauthToken || auth.apiKey,
+      oauth: new Boolean(auth?.oauthToken && auth?.oauthToken?.length > 0).valueOf(),
+      signature,
       timestamp,
     };
   }

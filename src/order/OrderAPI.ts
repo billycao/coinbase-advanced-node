@@ -162,8 +162,6 @@ export interface CreateOrderResponse {
   failure_reason?: string;
   order_configuration?: OrderConfiguration;
   order_id: string;
-  size(size: any): unknown;
-  status(status: any): unknown;
   success: boolean;
   success_response?: {
     client_order_id: string;
