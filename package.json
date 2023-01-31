@@ -96,7 +96,7 @@
     "postversion": "git push origin && git push origin --tags && npm publish",
     "prettier": "prettier --ignore-path .gitignore --loglevel silent \"**/*.{html,json,scss,yml}\"",
     "preversion": "git checkout main && git pull && yarn install && yarn lint && yarn test && yarn dist",
-    "release:major": "generate-changelog -M && yarn changelog:commit && yarn docs:release && npm version major",
+    "release:major": "generate-changelog -t 1e447fd... && yarn changelog:commit && yarn docs:release && npm version major",
     "release:minor": "generate-changelog -m && yarn changelog:commit && yarn docs:release && npm version minor",
     "release:patch": "generate-changelog -p && yarn changelog:commit && yarn docs:release && npm version patch",
     "test": "nyc --nycrc-path=nyc.config.coverage.json jasmine --config=jasmine.json",
@@ -104,5 +104,5 @@
     "test:types": "yarn lint:types",
     "prepare": "husky install"
   },
-  "version": "1.0.1"
+  "version": "1.0.2"
 }
