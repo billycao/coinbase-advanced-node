@@ -9,6 +9,7 @@ describe('RESTClient', () => {
     return new RESTClient(global.clientConnection, () => {
       return Promise.resolve({
         key: '',
+        oauth: false,
         passphrase: '',
         signature: '',
         timestamp: Math.floor(Date.now() / 1000),

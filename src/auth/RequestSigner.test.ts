@@ -27,12 +27,13 @@ describe('RequestSigner', () => {
 
       const expected: SignedRequest = {
         key: '163c69bf6c849427616c7e04ee99df52',
-        signature: '8dd864f2b61e6b6ded55333aff7902b9d32115f49afa380a4af6a5ff2142adc2',
-        timestamp: 1673913588,
+        oauth: false,
+        signature: '8aec032b925e03099e5957bb83c063067859b81e902899b5dbde49b3432ce26e',
+        timestamp: 1580066918,
       };
 
       const signature = RequestSigner.signRequest(auth, setup, clockSkew);
-
+      // console.log('SIGNED REQUEST ', signature);
       expect(signature.signature).toBe(expected.signature);
     });
   });

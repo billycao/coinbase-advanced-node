@@ -6,7 +6,7 @@ describe('UserAPI', () => {
   afterAll(() => nock.cleanAll());
 
   beforeAll(() => {
-    nock(global.REST_URL)
+    nock(global.SIWC_REST_URL)
       .persist()
       .get(`${UserAPI.URL.USERS}/9da7a204-544e-5fd1-9a12-61176c5d4cd8`)
       .query(true)
@@ -14,7 +14,7 @@ describe('UserAPI', () => {
         return [200, JSON.stringify(verifyPayload)];
       });
 
-    nock(global.REST_URL)
+    nock(global.SIWC_REST_URL)
       .persist()
       .get(`${UserAPI.URL.USERS}/auth`)
       .query(true)

@@ -2,6 +2,11 @@ import {AxiosInstance} from 'axios';
 import {ISO_8601_MS_UTC, PaginatedData, Pagination} from '../payload/common';
 import {formatPaginationIntoParams} from '../util/shared-request';
 
+export interface SIWCAvailableBalance {
+  amount: string;
+  currency: string;
+}
+
 export interface AvailableBalance {
   currency: string;
   value: string;
@@ -60,7 +65,7 @@ export interface CoinbaseRewardDetails {
 export interface CoinbaseAccount {
   allow_deposits: boolean;
   allow_withdrawals: boolean;
-  balance: AvailableBalance;
+  balance: SIWCAvailableBalance;
   created_at: ISO_8601_MS_UTC;
   currency: CoinbaseCurrencyDetails;
   id: string;
@@ -141,7 +146,7 @@ export class AccountAPI {
   async listCoinbaseAccounts(pagination?: Pagination): Promise<PaginatedData<CoinbaseAccount>> {
     const resource = AccountAPI.URL.COINBASE_ACCOUNT;
     if (pagination) {
-      pagination = formatPaginationIntoParams(pagination);
+      pagination = formatPaginationIntoParams(pagination, true);
     }
     const response = await this.apiClient.get(resource, {params: {limit: 250, ...pagination}});
     return {

@@ -4,7 +4,7 @@ import {SharedRequestService} from '../util/shared-request';
 import {TransactionAPI} from './TransactionAPI';
 
 describe('TransactionAPI', () => {
-  afterEach(() => nock.cleanAll());
+  afterAll(() => nock.cleanAll());
 
   const accountId = '2bbf394c-193b-5b2a-9155-3b4732659ede';
   const transactionID = '57ffb4ae-0c59-5430-bcd3-3f98f797a66c';
@@ -206,25 +206,29 @@ describe('TransactionAPI', () => {
   };
 
   beforeAll(() => {
-    nock(global.REST_URL)
-      .get(`/${SharedRequestService.BASE_URL}/${accountId}/${TransactionAPI.SHARED_REF}/${transactionID}`)
-      .reply(200, {data: mockTransaction});
-    nock(global.REST_URL)
-      .get(`/${SharedRequestService.BASE_URL}/${accountId}/${TransactionAPI.SHARED_REF}}`)
-      .reply(200, {data: mockAllTransactions});
-    nock(global.REST_URL).post(`/accounts/${accountId}/transactions`).reply(200, {data: mockSendResponse});
+    nock(global.SIWC_REST_URL)
+      .persist()
+      .get(`${SharedRequestService.BASE_URL}/${accountId}/${TransactionAPI.SHARED_REF}/${transactionID}`)
+      .reply(200, JSON.stringify({data: mockTransaction}));
+    nock(global.SIWC_REST_URL)
+      .persist()
+      .get(`${SharedRequestService.BASE_URL}/${accountId}/${TransactionAPI.SHARED_REF}`)
+      .reply(200, JSON.stringify(mockAllTransactions));
+    nock(global.SIWC_REST_URL)
+      .persist()
+      .post(`/accounts/${accountId}/transactions`)
+      .reply(200, JSON.stringify(mockSendResponse));
   });
 
   describe('getTransaction', () => {
     it('returns a transaction', async () => {
       const res = await global.client.rest.transaction.getTransaction(accountId, transactionID);
-      expect(res.id).toBe(transactionID);
+      expect(res.id).toBe('57ffb4ae-0c59-5430-bcd3-3f98f797a66c');
     });
   });
 
   describe('listTransactions', () => {
-    it('returns a transaction', async () => {
-      const accountId = '2bbf394c-193b-5b2a-9155-3b4732659ede';
+    it('returns all transactions', async () => {
       const res = await global.client.rest.transaction.listTransactions(accountId);
       expect(res.data[0].id).toBe(mockAllTransactions.data[0].id);
     });
@@ -232,7 +236,6 @@ describe('TransactionAPI', () => {
 
   describe('sendTransactions', () => {
     it('creates a new transaction', async () => {
-      const accountId = '2bbf394c-193b-5b2a-9155-3b4732659ede';
       const res = await global.client.rest.transaction.sendTransaction(accountId, {
         amount: '0.0001',
         currency: 'BTC',
@@ -240,7 +243,7 @@ describe('TransactionAPI', () => {
         to: '1AUJ8z5RuHRTqD1eikyfUUetzGmdWLGkpT',
         type: TransactionType.SEND,
       });
-      expect(res.id).toBe('3c04e35e-8e5a-5ff1-9155-00675db4ac02');
+      expect(res.id).toBe(mockSendResponse.data.id);
     });
   });
 });

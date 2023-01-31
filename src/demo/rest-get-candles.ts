@@ -3,6 +3,7 @@ import {initClient} from './init-client';
 
 async function main(): Promise<void> {
   const client = initClient();
+
   const candles = await client.rest.product.getCandles('BTC-USD', {
     end: '2020-04-11T10:00:00.000Z',
     granularity: CandleGranularity.ONE_HOUR,

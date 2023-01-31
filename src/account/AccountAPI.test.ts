@@ -37,11 +37,17 @@ describe('AccountAPI', () => {
 
     nock(global.REST_URL)
       .persist()
-      .get(`${AccountAPI.URL.ACCOUNTS}/322dfa88-e10d-4678-856d-2930eac3e62d`)
+      .get(`${AccountAPI.URL.ACCOUNTS}/0afbdffa-d088-5ae3-a5fa-7d6c88f7d53d`)
       .query(true)
       .reply(200, JSON.stringify(getAccount));
 
-    nock(global.REST_URL)
+    nock(global.SIWC_REST_URL)
+      .persist()
+      .get(`${AccountAPI.URL.COINBASE_ACCOUNT}/${btcAsset.id}`)
+      .query(true)
+      .reply(200, JSON.stringify({data: btcAsset}));
+
+    nock(global.SIWC_REST_URL)
       .persist()
       .get(`${AccountAPI.URL.COINBASE_ACCOUNT}`)
       .query(true)
@@ -78,7 +84,7 @@ describe('AccountAPI', () => {
 
   describe('getAccount', () => {
     it('gets information for a single account', async () => {
-      const accountId = '322dfa88-e10d-4678-856d-2930eac3e62d';
+      const accountId = '0afbdffa-d088-5ae3-a5fa-7d6c88f7d53d';
       const account = await global.client.rest.account.getAccount(accountId);
       expect(account.uuid).toBe(accountId);
     });

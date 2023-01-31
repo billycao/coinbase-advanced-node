@@ -1,5 +1,5 @@
-import {Candle, CandleGranularity} from '.';
-import {CandleGranularityNumbers, getNumericCandleGranularity, ISO_8601_MS_UTC} from '..';
+import {Candle, CandleGranularity, getNumericCandleGranularity} from '.';
+import {CandleGranularityNumbers, ISO_8601_MS_UTC} from '..';
 
 /** The maximum number of data points for a single historic rates API request on Coinbase Pro is 300 candles: https://docs.cloud.coinbase.com/exchange/reference/exchangerestapi_getproductcandles */
 const MAXIMUM_HISTORIC_DATA_POINTS = 300;

@@ -233,10 +233,6 @@ export class ProductAPI {
   async getCandles(productId: string, params: HistoricRateRequest): Promise<Candle[]> {
     const resource = `${ProductAPI.URL.PRODUCTS}/${productId}/candles`;
 
-    if (!(params as any).end) {
-      (params as any).end = Math.floor(Date.now() / 1000);
-    }
-
     const candleSizeInMillis = getNumericCandleGranularity(params.granularity) * 1000;
     const potentialParams = params as HistoricRateRequestWithTimeSpan;
 
@@ -254,18 +250,30 @@ export class ProductAPI {
       const bucketsInISO = CandleBucketUtil.getBucketsInISO(bucketsInMillis);
 
       for (let index = 0; index < bucketsInISO.length; index++) {
+        const bucket = bucketsInISO[index];
         const response = await this.apiClient.get<any>(resource, {
           params: {
-            end: Math.floor(toInMillis / 1000),
+            end: Math.floor(new Date(bucket.stop).getTime() / 1000),
             granularity: params.granularity,
-            start: Math.floor(fromInMillis / 1000),
+            start: Math.floor(new Date(bucket.start).getTime() / 1000),
           },
         });
         rawCandles.push(...response.data.candles);
       }
     } else {
-      const response = await this.apiClient.get<any>(resource, {params});
-      rawCandles = rawCandles.concat([...response.data.candles]);
+      if (!potentialParams.end) {
+        potentialParams.end = potentialParams.start
+          ? Math.floor(new Date(potentialParams.start).getTime() + (candleSizeInMillis * 300) / 1000)
+          : Math.floor(Date.now() / 1000);
+      }
+
+      if (!potentialParams.start) {
+        potentialParams.start = Math.floor(new Date(potentialParams.end).getTime() - (candleSizeInMillis * 300) / 1000);
+      }
+
+      const response = await this.apiClient.get<any>(resource, {params: potentialParams});
+      const c = response?.data?.candles || [];
+      rawCandles = rawCandles.concat([...c]);
     }
 
     return rawCandles
@@ -368,6 +376,7 @@ export class ProductAPI {
       pagination: {
         after: (pagination?.after || 0).toString(),
         before: response.data.num_products,
+        has_next: false,
       },
     };
   }
@@ -387,27 +396,15 @@ export class ProductAPI {
     }).then((res: Candle[]) => {
       const latest = res[res.length - 1];
       return {
-        high: latest.high.toString(),
-        last: latest.close.toString(),
-        low: latest.low.toString(),
+        high: latest?.high?.toString(),
+        last: latest?.close?.toString(),
+        low: latest?.low?.toString(),
         open: latest.open.toString(),
-        volume: latest.volume.toString(),
+        volume: latest?.volume?.toString(),
         volume_30day: 'unknown',
       };
     });
   }
-
-  // /**
-  //  * Get snapshot information about the last trade (tick), best bid/ask and 24h volume.
-  //  *
-  //  * @param productId - Representation for base and counter
-  //  * @see https://docs.cloud.coinbase.com/exchange/reference/exchangerestapi_getproductticker
-  //  */
-  // async getProductTicker(productId: string): Promise<ProductTicker> {
-  //   const resource = `${ProductAPI.URL.PRODUCTS}/${productId}/ticker`;
-  //   const response = await this.apiClient.get<ProductTicker>(resource);
-  //   return response.data;
-  // }
 
   private mapCandle(payload: any, sizeInMillis: number, productId: string): Candle {
     const {start, low, high, open, close, volume} = payload;

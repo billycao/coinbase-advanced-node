@@ -8,7 +8,7 @@ describe('TimeAPI', () => {
     beforeEach(() => {
       nock.cleanAll();
 
-      nock(global.REST_URL)
+      nock(global.SIWC_REST_URL)
         .persist()
         .get(TimeAPI.URL.TIME)
         .query(true)
@@ -17,16 +17,17 @@ describe('TimeAPI', () => {
           return [
             200,
             JSON.stringify({
-              epoch: date.getTime() / 1000,
-              iso: date.toISOString(),
+              data: {
+                epoch: date.getTime() / 1000,
+                iso: date.toISOString(),
+              },
             }),
           ];
         });
     });
 
     it('returns decimal seconds since Unix Epoch', async () => {
-      const time = await new TimeAPI(global.REST_URL).getTime();
-
+      const time = await new TimeAPI(global.SIWC_REST_URL).getTime();
       const expected: TimeSkew = {
         epoch: 1420674445.201,
         iso: '2015-01-07T23:47:25.201Z',

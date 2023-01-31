@@ -19,8 +19,8 @@ export interface FeeTier {
 }
 
 export enum GoodsAndServicesTypes {
-  INCLUSIVE,
-  EXCLUSIVE,
+  EXCLUSIVE = 'EXCLUSIVE',
+  INCLUSIVE = 'INCLUSIVE',
 }
 
 export interface CoinbaseFees {

@@ -122,19 +122,21 @@ export class RESTClient extends EventEmitter {
 
       // console.log('config.headers ', config.headers);
 
-      if (!signedRequest.key) {
+      if (signedRequest.oauth) {
         config.headers = {
           ...config.headers,
-          Authorization: `Bearer: ${signedRequest.signature}`,
+          Authorization: `Bearer: ${signedRequest.key}`,
           'CB-ACCESS-TIMESTAMP': `${signedRequest.timestamp}`,
         };
       } else {
         config.headers = {
           ...config.headers,
-          'CB-ACCESS-KEY': signedRequest.key,
-          'CB-ACCESS-SIGN': signedRequest.signature,
           'CB-ACCESS-TIMESTAMP': `${signedRequest.timestamp}`,
         };
+        if (signedRequest.key !== '') {
+          config.headers['CB-ACCESS-SIGN'] = signedRequest.signature;
+          config.headers['CB-ACCESS-KEY'] = signedRequest.key;
+        }
       }
 
       if (!config.url?.includes('brokerage')) {

@@ -6,10 +6,10 @@ describe('CurrencyAPI', () => {
 
   describe('listCurrencies', () => {
     it('list available currencies', async () => {
-      nock(global.REST_URL)
+      nock(global.SIWC_REST_URL)
         .get(CurrencyAPI.URL.CURRENCIES)
         .query(true)
-        .reply(200, JSON.stringify([{id: 'BIF', min_size: '1.00000000', name: 'Burundian Franc'}]));
+        .reply(200, JSON.stringify({data: [{id: 'BIF', min_size: '1.00000000', name: 'Burundian Franc'}]}));
 
       const currencies = await global.client.rest.currency.listCurrencies();
 

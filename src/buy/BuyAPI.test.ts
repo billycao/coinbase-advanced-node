@@ -42,7 +42,7 @@ describe('BuyAPI', () => {
 
   describe('createBuy', () => {
     beforeAll(() => {
-      nock(global.REST_URL)
+      nock(global.SIWC_REST_URL)
         .persist()
         .post(`${SharedRequestService.BASE_URL}/83562370-3e5c-51db-87da-752af5ab9559/${BuyAPI.SHARED_REF}`)
         .reply(200, JSON.stringify({data: mockBuy}));
@@ -64,7 +64,7 @@ describe('BuyAPI', () => {
 
   describe('getBuy', () => {
     beforeAll(() => {
-      nock(global.REST_URL)
+      nock(global.SIWC_REST_URL)
         .persist()
         .get(
           `${SharedRequestService.BASE_URL}/83562370-3e5c-51db-87da-752af5ab9559/${BuyAPI.SHARED_REF}/67e0eaec-07d7-54c4-a72c-2e92826897df`
@@ -83,10 +83,10 @@ describe('BuyAPI', () => {
 
   describe('commitBuy', () => {
     beforeAll(() => {
-      nock(global.REST_URL)
+      nock(global.SIWC_REST_URL)
         .persist()
         .post(
-          `${SharedRequestService.BASE_URL}/83562370-3e5c-51db-87da-752af5ab9559/${BuyAPI.SHARED_REF}/67e0eaec-07d7-54c4-a72c-2e92826897df`
+          `${SharedRequestService.BASE_URL}/83562370-3e5c-51db-87da-752af5ab9559/${BuyAPI.SHARED_REF}/67e0eaec-07d7-54c4-a72c-2e92826897df/commit`
         )
         .reply(200, JSON.stringify({data: mockBuy}));
     });
@@ -102,7 +102,7 @@ describe('BuyAPI', () => {
 
   describe('getBuys', () => {
     beforeAll(() => {
-      nock(global.REST_URL)
+      nock(global.SIWC_REST_URL)
         .persist()
         .get(`${SharedRequestService.BASE_URL}/83562370-3e5c-51db-87da-752af5ab9559/${BuyAPI.SHARED_REF}`)
         .reply(

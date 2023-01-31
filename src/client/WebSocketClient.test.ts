@@ -227,7 +227,7 @@ describe('WebSocketClient', () => {
       const ws = createWebSocketClient();
       ws.on(WebSocketEvent.ON_SUBSCRIPTION_UPDATE, subscriptions => {
         // Disconnect when there are no more open subscriptions
-        if (subscriptions.channels.length === 0) {
+        if (subscriptions?.channels?.length === 0) {
           ws.disconnect();
         }
       });
@@ -329,7 +329,7 @@ describe('WebSocketClient', () => {
 
       ws.on(WebSocketEvent.ON_MESSAGE_ERROR, async errorMessage => {
         expect(errorMessage.type).toBe(WebSocketResponseType.ERROR);
-        await ws.disconnect();
+        ws.disconnect();
         done();
       });
 
@@ -383,9 +383,9 @@ describe('WebSocketClient', () => {
 
       const ws = createWebSocketClient();
 
-      ws.on(WebSocketEvent.ON_SUBSCRIPTION_UPDATE, async subscriptions => {
+      ws.on(WebSocketEvent.ON_SUBSCRIPTION_UPDATE, subscriptions => {
         if (subscriptions.channels.length === 0) {
-          await ws.disconnect();
+          ws.disconnect();
         }
       });
 
@@ -403,8 +403,8 @@ describe('WebSocketClient', () => {
     // TODO: This test appears to be flaky
     it('sends ping messages within a defined interval', done => {
       server.on('connection', socket => {
-        socket.on('ping', async () => {
-          await ws.disconnect();
+        socket.on('ping', () => {
+          ws.disconnect();
           done();
         });
       });
