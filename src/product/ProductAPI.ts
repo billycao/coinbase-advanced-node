@@ -55,6 +55,8 @@ export interface ProductStats {
 
 export interface Trade {
   ask: string;
+  best_ask: string;
+  best_bid: string;
   bid: string;
   price: string;
   product_id: string;

@@ -125,7 +125,7 @@ export class RESTClient extends EventEmitter {
       if (signedRequest.oauth) {
         config.headers = {
           ...config.headers,
-          Authorization: `Bearer: ${signedRequest.key}`,
+          Authorization: `Bearer ${signedRequest.key}`,
           'CB-ACCESS-TIMESTAMP': `${signedRequest.timestamp}`,
         };
       } else {
