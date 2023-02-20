@@ -1,3 +1,9 @@
+#### 1.0.3 (2023-02-20)
+
+##### Chores
+
+*  update types from feb 9 cb update ([43b11c53](https://github.com/joshjancula/coinbase-advanced-node/commit/43b11c5398e0abdd5e9494807c311c25549344e9))
+
 #### 1.0.2 (2023-01-31)
 
 ##### Bug Fixes

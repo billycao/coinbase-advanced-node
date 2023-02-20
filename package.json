@@ -97,12 +97,12 @@
     "prettier": "prettier --ignore-path .gitignore --loglevel silent \"**/*.{html,json,scss,yml}\"",
     "preversion": "git checkout main && git pull && yarn install && yarn lint && yarn test && yarn dist",
     "release:major": "generate-changelog -t 1e447fd... && yarn changelog:commit && yarn docs:release && npm version major",
-    "release:minor": "generate-changelog -m && yarn changelog:commit && yarn docs:release && npm version minor",
+    "release:minor": "generate-changelog -m 1e447fd... && yarn changelog:commit && yarn docs:release && npm version minor",
     "release:patch": "generate-changelog -p && yarn changelog:commit && yarn docs:release && npm version patch",
     "test": "nyc --nycrc-path=nyc.config.coverage.json jasmine --config=jasmine.json",
     "test:dev": "nyc --nycrc-path=nyc.config.json jasmine --config=jasmine.json",
     "test:types": "yarn lint:types",
     "prepare": "husky install"
   },
-  "version": "1.0.2"
+  "version": "1.0.3"
 }
