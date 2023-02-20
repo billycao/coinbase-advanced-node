@@ -147,6 +147,9 @@ export enum TransactionType {
   FIAT_WITHDRAWAL = 'fiat_withdrawal',
   /** inflation rewards deposit */
   INFLATION_REWARD = 'inflation_reward',
+  /** transfers to/from coinbase pro */
+  PRO_DEPOSIT = 'pro_deposit',
+  PRO_WITHDRAWAL = 'pro_withdrawal',
   /** Request digital asset from a user or email */
   REQUEST = 'request',
   /** Sell a digital asset */
@@ -155,6 +158,8 @@ export enum TransactionType {
   SEND = 'send',
   /** stating reward deposit */
   STAKING_REWARD = 'staking_reward',
+  /** traded one currency for another */ 
+  TRADE = 'trade',
   /** Transfer funds between two of one user’s accounts */
   TRANSFER = 'transfer',
   /** Withdraw funds from a vault account */
