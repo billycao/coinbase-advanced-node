@@ -41,6 +41,11 @@ export interface TransactionAmount {
   currency: string;
 }
 
+export interface OrderAmount {
+  price: string;
+  size: string;
+}
+
 export interface ResourceRef {
   currency?: string;
   id: string;
@@ -158,7 +163,7 @@ export enum TransactionType {
   SEND = 'send',
   /** stating reward deposit */
   STAKING_REWARD = 'staking_reward',
-  /** traded one currency for another */ 
+  /** traded one currency for another */
   TRADE = 'trade',
   /** Transfer funds between two of one user’s accounts */
   TRANSFER = 'transfer',

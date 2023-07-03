@@ -1,5 +1,5 @@
 import {AxiosInstance} from 'axios';
-import {ISO_8601_MS_UTC, OrderSide, PaginatedData, Pagination, UNIX_STAMP} from '../payload/common';
+import {ISO_8601_MS_UTC, OrderAmount, OrderSide, PaginatedData, Pagination, UNIX_STAMP} from '../payload/common';
 import {CandleBucketUtil} from './CandleBucketUtil';
 import {RESTClient} from '..';
 import {formatPaginationIntoParams} from '../util/shared-request';
@@ -107,59 +107,11 @@ export interface HistoricRateRequestWithTimeSpan extends BaseHistoricRateRequest
 
 export type HistoricRateRequest = BaseHistoricRateRequest | HistoricRateRequestWithTimeSpan;
 
-export enum OrderBookLevel {
-  ONLY_BEST_BID_AND_ASK = 1,
-  TOP_50_BIDS_AND_ASKS = 2,
-  FULL_ORDER_BOOK = 3,
-}
-
-/** Active order price */
-type ActiveOrderPrice = string;
-/** Sum of the size of the orders at active order price. Size should not be multiplied by number of orders. */
-type OrderSumSize = string;
-/** Number of orders at active order price. */
-type NumberOfOrders = number;
-type OrderId = string;
-/** Aggregated levels return only one size for each active order price. */
-type AggregatedOrder = [ActiveOrderPrice, OrderSumSize, NumberOfOrders];
-type NonAggregatedOrder = [ActiveOrderPrice, OrderSumSize, OrderId];
-
-/**
- * Sequence numbers are increasing integer values for each product with every new message being exactly 1 sequence
- * number than the one before it. If you see a sequence number that is more than one value from the previous, it means
- * a message has been dropped. A sequence number less than one you have seen can be ignored or has arrived
- * out-of-order. In both situations you may need to perform logic to make sure your system is in the correct state.
- */
-type SequenceNumber = number;
-
-/** Represents only the best bid and ask. */
-export interface OrderBookLevel1 {
-  asks: AggregatedOrder[];
-  bids: AggregatedOrder[];
-  sequence: SequenceNumber;
-}
-
-/** Top 50 bids and asks (aggregated) BUT if there are not 50 then less bids and asks are returned. */
-export interface OrderBookLevel2 {
-  asks: AggregatedOrder[];
-  bids: AggregatedOrder[];
-  sequence: SequenceNumber;
-}
-
-/**
- * Full order book (non aggregated): Level 3 is only recommended for users wishing to maintain a full real-time order
- * book using the websocket stream. Abuse of Level 3 via polling will cause your access to be limited or blocked.
- */
-export interface OrderBookLevel3 {
-  asks: NonAggregatedOrder[];
-  bids: NonAggregatedOrder[];
-  sequence: SequenceNumber;
-}
-
-export type OrderBook = OrderBookLevel1 | OrderBookLevel2 | OrderBookLevel3;
-
-export interface OrderBookRequestParameters {
-  level: OrderBookLevel;
+export interface PriceBook {
+  asks: OrderAmount[];
+  bids: OrderAmount[];
+  product_id: string;
+  time: ISO_8601_MS_UTC;
 }
 
 type Close = number;
@@ -209,6 +161,11 @@ export interface ProductsQueryParams {
   limit?: number; // how many
   offset?: number; // 'starting after'
   product_type: string;
+}
+
+export interface MarketTradesResponse extends PaginatedData<Trade> {
+  best_ask: string;
+  best_bid: string;
 }
 
 export class ProductAPI {
@@ -366,7 +323,7 @@ export class ProductAPI {
    * @param pagination - Pagination field
    * @see https://docs.cloud.coinbase.com/advanced-trade-api/reference/retailbrokerageapi_getmarkettrades
    */
-  async getTrades(productId: string, pagination?: Pagination): Promise<PaginatedData<Trade>> {
+  async getTrades(productId: string, pagination?: Pagination): Promise<MarketTradesResponse> {
     const resource = `${ProductAPI.URL.PRODUCTS}/${productId}/ticker`;
     let params: any = {limit: pagination?.limit || 999};
     if (pagination) {
@@ -374,6 +331,8 @@ export class ProductAPI {
     }
     const response = await this.apiClient.get(resource, {params});
     return {
+      best_ask: response.data.best_ask,
+      best_bid: response.data.best_bid,
       data: response.data.trades,
       pagination: {
         after: (pagination?.after || 0).toString(),
@@ -406,6 +365,31 @@ export class ProductAPI {
         volume_30day: 'unknown',
       };
     });
+  }
+
+  /**
+   * Get Best Bid/Ask
+   *
+   * @param productIds - Products to get asks/bids for
+   * @see https://docs.cloud.coinbase.com/advanced-trade-api/reference/retailbrokerageapi_getbestbidask
+   */
+  async getBestAsksAndBids(productIds: string[]): Promise<PriceBook[]> {
+    const resource = `/brokerage/best_bid_ask`;
+    const response = await this.apiClient.get(resource, {params: {product_ids: productIds}});
+    return response.data.pricebooks;
+  }
+
+  /**
+   * Get Product Book
+   *
+   * @param productId - Products to get asks/bids for
+   * @see https://docs.cloud.coinbase.com/advanced-trade-api/reference/retailbrokerageapi_getproductbook
+   */
+  async getProductBook(productId: string, limit?: number): Promise<PriceBook> {
+    const resource = `/brokerage/product_book`;
+    const params = {limit: limit || 250, product_id: productId};
+    const response = await this.apiClient.get(resource, {params});
+    return response.data.pricebook;
   }
 
   private mapCandle(payload: any, sizeInMillis: number, productId: string): Candle {
