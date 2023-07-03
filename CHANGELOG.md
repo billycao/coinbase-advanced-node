@@ -1,3 +1,9 @@
+### 1.2.0 (2023-07-03)
+
+##### New Features
+
+*  add endpoints & types for pricebooks ([ecd2fa69](https://github.com/joshjancula/coinbase-advanced-node/commit/ecd2fa69a32c23aa4550f221fab558766ca546e4))
+
 #### 1.0.3 (2023-02-20)
 
 ##### Chores
