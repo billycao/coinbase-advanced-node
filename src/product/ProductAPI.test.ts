@@ -5,6 +5,15 @@ import TradesBTCEUR from '../test/fixtures/rest/products/BTC-EUR/trades/GET-200.
 // import FirstCandleBatch from '../test/fixtures/rest/products/BTC-USD/candles/2020-03-20-00-00.json';
 // import SecondCandleBatch from '../test/fixtures/rest/products/BTC-USD/candles/2020-03-20-05-00.json';
 
+const mockPriceBookInfo = [
+  {
+    asks: [{price: '24222.21', size: '1.2'}],
+    bids: [{price: '23750.26', size: '1.27'}],
+    product_id: 'BTC-USD',
+    time: new Date().toISOString(),
+  },
+];
+
 describe('ProductAPI', () => {
   afterEach(() => nock.cleanAll());
 
@@ -109,6 +118,30 @@ describe('ProductAPI', () => {
         .reply(200, JSON.stringify(TradesBTCEUR));
       const trades = await global.client.rest.product.getTrades(productId);
       expect(trades.data.length).toBe(2);
+    });
+  });
+
+  describe('getBestAsksAndBids', () => {
+    it('lists an array of responses', async () => {
+      const productId = ['BTC-USD'];
+      nock(global.REST_URL)
+        .get(`/brokerage/best_bid_ask`)
+        .query(true)
+        .reply(200, JSON.stringify({pricebooks: mockPriceBookInfo}));
+      const res = await global.client.rest.product.getBestAsksAndBids(productId);
+      expect(res.length).toBe(1);
+    });
+  });
+
+  describe('getBestAsksAndBids', () => {
+    it('lists an array of responses', async () => {
+      const productId = 'BTC-USD';
+      nock(global.REST_URL)
+        .get(`/brokerage/product_book`)
+        .query(true)
+        .reply(200, JSON.stringify({pricebook: mockPriceBookInfo[0]}));
+      const res = await global.client.rest.product.getProductBook(productId);
+      expect(res.product_id).toBe(productId);
     });
   });
 
