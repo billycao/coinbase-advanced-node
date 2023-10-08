@@ -1,12 +1,26 @@
 {
-  "type": "snapshot",
-  "product_id": "BTC-USD",
-  "updates": [
+  "channel": "l2_data",
+  "client_id": "",
+  "timestamp": "2023-02-09T20:32:50.714964855Z",
+  "sequence_num": 0,
+  "events": [
     {
-      "side": "bid",
-      "new_quantity": "10101.80000000",
-      "price_level": "0.162567",
-      "event_time": "2019-08-14T20:42:27.265Z"
+      "type": "snapshot",
+      "product_id": "BTC-USD",
+      "updates": [
+        {
+          "side": "bid",
+          "event_time": "1970-01-01T00:00:00Z",
+          "price_level": "21921.73",
+          "new_quantity": "0.06317902"
+        },
+        {
+          "side": "bid",
+          "event_time": "1970-01-01T00:00:00Z",
+          "price_level": "21921.3",
+          "new_quantity": "0.02"
+        }
+      ]
     }
   ]
 }

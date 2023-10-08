@@ -6,11 +6,11 @@ const client = initClient();
 const channels = [
   {
     channel: WebSocketChannelName.LEVEL2,
-    product_ids: ['ETH-USD', 'ETH-EUR'],
+    product_ids: ['ETH-USD', 'BTC-USD'],
   },
   {
     channel: WebSocketChannelName.TICKER,
-    product_ids: ['ETH-BTC', 'ETH-EUR'],
+    product_ids: ['ETH-USD', 'BTC-USD'],
   },
 ];
 

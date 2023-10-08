@@ -10,6 +10,25 @@ export interface CandleBatchBucket {
 }
 
 export class CandleBucketUtil {
+  static mapCandle(payload: any, sizeInMillis: number, productId: string): Candle {
+    const {start, low, high, open, close, volume} = payload;
+    const [base, counter] = productId.split('-');
+    const openTimeInMillis = parseFloat(start) * 1000; // Map seconds to milliseconds
+    return {
+      base,
+      close,
+      counter,
+      high,
+      low,
+      open,
+      openTimeInISO: new Date(openTimeInMillis).toISOString(),
+      openTimeInMillis,
+      productId: productId,
+      sizeInMillis,
+      volume,
+    };
+  }
+
   static getMinPrice(candles: Candle[], property: 'close' | 'high' | 'low' | 'open' = 'close'): number {
     const values: number[] = candles.map(candle => candle[property]);
     return Math.min(...values);
