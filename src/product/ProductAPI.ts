@@ -158,9 +158,11 @@ export enum ProductEvent {
 }
 
 export interface ProductsQueryParams {
-  limit?: number; // how many
-  offset?: number; // 'starting after'
-  product_type: string;
+  contract_expiry_type?: string;
+  limit?: number;
+  offset?: number;
+  product_ids?: string[];
+  product_type?: string;
 }
 
 export interface MarketTradesResponse extends PaginatedData<Trade> {
