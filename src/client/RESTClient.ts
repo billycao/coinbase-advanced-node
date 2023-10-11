@@ -102,25 +102,25 @@ export class RESTClient extends EventEmitter {
     });
 
     this.httpClient.interceptors.request.use(async config => {
-      const baseURL = String(
-        config.url?.includes('brokerage') ? connectionData.REST_ADV_TRADE : connectionData.REST_SIWC
-      );
+      const baseURL =
+        config.baseURL ||
+        String(
+          (config.url || '').search('v3|brokerage') > -1 ? connectionData.REST_ADV_TRADE : connectionData.REST_SIWC
+        );
       config.baseURL = baseURL;
       // console.log('base ', base)
       const url = String(baseURL + config.url);
-      let requestPath = url.replace(url.split(config.url?.includes('brokerage') ? '/api/v3/' : '/v2')[0], '');
+      let requestPath = url.replace(url.split(baseURL.includes('v3') ? '/api/v3/' : '/v2')[0], '');
 
-      if (config.url?.includes('brokerage')) {
+      if (config.baseURL?.includes('v3')) {
         requestPath = requestPath.replace(requestPath.split('?')[1], '');
       }
 
       const signedRequest = await this.signRequest({
         httpMethod: String(config.method).toUpperCase(),
-        payload: RESTClient.stringifyPayload(config, config.url?.includes('brokerage')),
+        payload: RESTClient.stringifyPayload(config, config.baseURL.includes('v3')),
         requestPath,
       });
-
-      // console.log('config.headers ', config.headers);
 
       if (signedRequest.oauth) {
         config.headers = {
@@ -139,7 +139,7 @@ export class RESTClient extends EventEmitter {
         }
       }
 
-      if (!config.url?.includes('brokerage')) {
+      if (!config.baseURL?.includes('v3')) {
         config.headers['CB-VERSION'] = new Date().toISOString().substring(0, 10);
       }
 
@@ -169,5 +169,9 @@ export class RESTClient extends EventEmitter {
     }
     const params = querystring.stringify(config.params);
     return params && !excludeParams ? `?${params}` : '';
+  }
+
+  public coinbaseRequest(config: AxiosRequestConfig): Promise<AxiosResponse<any, any>> {
+    return this.httpClient.request(config);
   }
 }
