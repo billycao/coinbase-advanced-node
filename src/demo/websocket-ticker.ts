@@ -1,5 +1,5 @@
 import {initClient} from './init-client';
-import {WebSocketChannelName, WebSocketEvent} from '..';
+import {WebSocketChannelName, WebSocketEvent, WebSocketTickerMessageEvent} from '..';
 
 // 1. Setup Coinbase Pro client
 const client = initClient();
@@ -19,8 +19,8 @@ client.ws.on(WebSocketEvent.ON_OPEN, async () => {
 // 4. Listen to WebSocket subscription updates
 client.ws.on(WebSocketEvent.ON_SUBSCRIPTION_UPDATE, subscriptions => {
   // When there are no more subscriptions...
-  if (subscriptions.channels.length === 0) {
-    // 10. Disconnect WebSocket (and end program)
+  const obj = subscriptions.events ? subscriptions.events[0].subscriptions : {};
+  if (Object.keys(obj).length === 0) {
     client.ws.disconnect();
   }
 });
@@ -28,19 +28,22 @@ client.ws.on(WebSocketEvent.ON_SUBSCRIPTION_UPDATE, subscriptions => {
 // 5. Listen to WebSocket channel updates
 client.ws.on(WebSocketEvent.ON_MESSAGE_TICKER, async tickerMessage => {
   // 8. Receive message from WebSocket channel
-  console.info(`Received message of type "${tickerMessage.type}".`, tickerMessage);
+  console.info(`Received message of type "${tickerMessage.type}" with ${tickerMessage.events.length} events`);
+  tickerMessage.events.forEach((e: WebSocketTickerMessageEvent) => {
+    console.info('Tickers payload: ', e.tickers);
+  });
   // 9. Unsubscribe from WebSocket channel
   await client.ws.unsubscribe([
     {
       channel: WebSocketChannelName.TICKER,
-      product_ids: [tickerMessage.product_id],
+      product_ids: [tickerMessage.events[0].tickers[0].product_id],
     },
   ]);
 });
 
-client.ws.on(WebSocketEvent.ON_ERROR, async tickerMessage => {
+client.ws.on(WebSocketEvent.ON_ERROR, async err => {
   // 8. Receive message from WebSocket channel
-  console.info(`Received error of type ".`, tickerMessage);
+  console.info(`Received error of type ".`, err.error);
 });
 
 // 6. Connect to WebSocket

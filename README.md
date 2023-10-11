@@ -97,7 +97,7 @@ oauthClient.rest.account.listCoinbaseAccounts().then(accounts => {
 
 ## Two factor authentication
 
-OAuth2 authentication requires two factor authentication when debiting funds with the wallet:transactions:send scope. When 2FA is required, the API will respond with a 402 status and two_factor_required error. To successfully complete the request, you must make the same request again with the user's 2FA token in the CB-2FA-TOKEN header together with the current access token. https://docs.cloud.coinbase.com/sign-in-with-coinbase/docs/sign-in-with-coinbase-2fa
+OAuth2 authentication requires two factor authentication when debiting funds with the `wallet:transactions:send` scope. When 2FA is required, the API will respond with a `402` status and two_factor_required error. To successfully complete the request, you must make the same request again with the user's 2FA token in the `CB-2FA-TOKEN` header together with the current access token. https://docs.cloud.coinbase.com/sign-in-with-coinbase/docs/sign-in-with-coinbase-2fa
 
 ```typescript
 // Example
@@ -115,6 +115,20 @@ client.rest.transaction.sendTransaction(accountID, info).catch(async err => {
   }
   throw err;
 });
+```
+
+## Additional Endpoints
+In the instance this package has not been updated to include some endpoint(s) you may need,
+use the `coinbaseRequest` which will properly sign & proxy the request. Please [open an issue](https://github.com/JoshJancula/coinbase-advanced-node/issues) if this occurs.
+
+```typescript
+const client = new Coinbase(creds);
+const info = await client.rest.coinbaseRequest({
+  baseURL: client.url.REST_ADV_TRADE,
+  method: 'get',
+  url: '/brokerage/products',
+});
+console.info('products data: ', info.data);
 ```
 
 ### WebSocket Example
@@ -192,8 +206,8 @@ Feel free to check the [issues page](https://github.com/joshjancula/coinbase-adv
 
 The following commits will help you getting started quickly with the code base:
 
-- [Add REST API endpoint](https://github.com/bennycode/coinbase-advanced-node/commit/9920c2f4343985c349b68e2a47d7fe2c42e23e34)
-- [Add REST API endpoint (with fixtures)](https://github.com/bennycode/coinbase-advanced-node/commit/8a150fecb7d32b7b7cd39a8109985f665aaee26e)
+- [Add REST API endpoint](https://github.com/bennycode/coinbase-prod-node/commit/9920c2f4343985c349b68e2a47d7fe2c42e23e34)
+- [Add REST API endpoint (with fixtures)](https://github.com/bennycode/coinbase-pro-node/commit/8a150fecb7d32b7b7cd39a8109985f665aaee26e)
 
 All resources can be found in the [Coinbase Advance Trade API reference][2]. For the latest updates, check [Coinbase's API Changelog][9].
 

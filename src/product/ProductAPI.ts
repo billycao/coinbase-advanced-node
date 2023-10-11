@@ -158,9 +158,11 @@ export enum ProductEvent {
 }
 
 export interface ProductsQueryParams {
-  limit?: number; // how many
-  offset?: number; // 'starting after'
-  product_type: string;
+  contract_expiry_type?: string;
+  limit?: number;
+  offset?: number;
+  product_ids?: string[];
+  product_type?: string;
 }
 
 export interface MarketTradesResponse extends PaginatedData<Trade> {
@@ -236,7 +238,7 @@ export class ProductAPI {
     }
 
     return rawCandles
-      .map(candle => this.mapCandle(candle, candleSizeInMillis, productId))
+      .map(candle => CandleBucketUtil.mapCandle(candle, candleSizeInMillis, productId))
       .sort((a, b) => a.openTimeInMillis - b.openTimeInMillis);
   }
 
@@ -390,25 +392,6 @@ export class ProductAPI {
     const params = {limit: limit || 250, product_id: productId};
     const response = await this.apiClient.get(resource, {params});
     return response.data.pricebook;
-  }
-
-  private mapCandle(payload: any, sizeInMillis: number, productId: string): Candle {
-    const {start, low, high, open, close, volume} = payload;
-    const [base, counter] = productId.split('-');
-    const openTimeInMillis = parseFloat(start) * 1000; // Map seconds to milliseconds
-    return {
-      base,
-      close,
-      counter,
-      high,
-      low,
-      open,
-      openTimeInISO: new Date(openTimeInMillis).toISOString(),
-      openTimeInMillis,
-      productId: productId,
-      sizeInMillis,
-      volume,
-    };
   }
 
   private emitCandle(productId: string, granularity: CandleGranularity, candle: Candle): void {
