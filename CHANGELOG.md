@@ -1,3 +1,18 @@
+#### 2.0.0 (2023-10-11)
+
+### ⚠ BREAKING CHANGES
+
+* websocket types & interfaces have been adjusted in order to properly support heartbeat sequencing
+
+##### New Features
+
+*  add coinbaseRequest ([d7eb7d5b](https://github.com/joshjancula/coinbase-advanced-node/commit/d7eb7d5bc78344648bb7b0c60ad0dea9c31ff07f))
+*  add websocket support for candles & heartbeats ([c5e980ba](https://github.com/joshjancula/coinbase-advanced-node/commit/c5e980ba8ee4ab8befb5ae9575af1b0f805f9aae))
+
+##### Chores
+
+ *  Add product_ids[] to ProductsQueryParams ([42716987](https://github.com/joshjancula/coinbase-advanced-node/commit/427169879982dc848e4811e6772437bd69ead8d9))
+
 ### 1.2.0 (2023-07-03)
 
 ##### New Features
