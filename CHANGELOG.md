@@ -1,3 +1,9 @@
+#### 2.1.0 (2023-12-14)
+
+##### Bug Fixes
+
+*  baseUrl for siwc innacurate ([f492c5b0](https://github.com/joshjancula/coinbase-advanced-node/commit/f492c5b0911539d0ef61d31bbcff434322b81a1a))
+
 #### 2.0.0 (2023-10-11)
 
 ### ⚠ BREAKING CHANGES
