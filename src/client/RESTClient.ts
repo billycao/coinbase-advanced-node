@@ -76,7 +76,6 @@ export class RESTClient extends EventEmitter {
     this.logger = util.debuglog('coinbase-advanced-node');
 
     this.httpClient = axios.create({
-      baseURL: connectionData.REST_ADV_TRADE,
       timeout: 50_000,
     });
 
@@ -108,7 +107,6 @@ export class RESTClient extends EventEmitter {
           (config.url || '').search('v3|brokerage') > -1 ? connectionData.REST_ADV_TRADE : connectionData.REST_SIWC
         );
       config.baseURL = baseURL;
-      // console.log('base ', base)
       const url = String(baseURL + config.url);
       let requestPath = url.replace(url.split(baseURL.includes('v3') ? '/api/v3/' : '/v2')[0], '');
 
