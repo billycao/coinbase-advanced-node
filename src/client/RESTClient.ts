@@ -28,6 +28,7 @@ import {DepositAPI} from '../deposit';
 import {AddressAPI} from '../addresses';
 import {BuyAPI} from '../buy';
 import {SellAPI} from '../sell';
+import { ConvertAPI } from '../convert';
 
 export interface RESTClient {
   on(
@@ -53,6 +54,7 @@ export class RESTClient extends EventEmitter {
   readonly address: AddressAPI;
   readonly buy: BuyAPI;
   readonly currency: CurrencyAPI;
+  readonly convert: ConvertAPI;
   readonly deposit: DepositAPI;
   readonly exchangeRate: ExchangeRateAPI;
   readonly fee: FeeAPI;
@@ -148,6 +150,7 @@ export class RESTClient extends EventEmitter {
     this.account = new AccountAPI(this.httpClient);
     this.buy = new BuyAPI(this.httpClient);
     this.deposit = new DepositAPI(this.httpClient);
+    this.convert = new ConvertAPI(this.httpClient);
     this.currency = new CurrencyAPI(this.httpClient);
     this.exchangeRate = new ExchangeRateAPI();
     this.fee = new FeeAPI(this.httpClient);
